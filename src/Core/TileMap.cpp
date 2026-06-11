@@ -1,0 +1,252 @@
+#include "Core/TileMap.h"
+
+void TileMap::Clear()
+{
+	layers.clear();
+	tileAnimations.clear();
+	tileAnimationLookup.clear();
+	exits.clear();
+	collisionData.clear();
+	collisionWidth = 0;
+	collisionHeight = 0;
+}
+
+void TileMap::Load(const std::string& filePath)
+{
+	Clear();
+	TileMapHeader header;
+	std::ifstream file(filePath, std::ios::binary);	
+	ReadBytes(file, &header, sizeof(header));
+	LoadLayerAnimations(header, file);
+	LoadLayers(header, file);
+	LoadEvents(header, file);
+}
+
+void TileMap::LoadLayerAnimations(TileMapHeader header, std::ifstream& file)
+{
+	tileAnimations.resize(header.tileAnimationCount);
+	for (auto &animation : tileAnimations)
+	{
+		ReadBytes(file, &animation.tileId, sizeof(animation.tileId));
+		ReadBytes(file, &animation.frameCount, sizeof(animation.frameCount));
+		animation.frames.resize(animation.frameCount);
+		ReadBytes(file, animation.frames.data(), animation.frameCount * sizeof(TileFrame));
+
+		animation.currentFrameIndex = 0;
+		if (animation.frameCount > 0)
+		{
+			int durationFrames = static_cast<int>((animation.frames[0].duration * TARGET_FPS) / 1000);
+			animation.framesRemaining = durationFrames > 0 ? durationFrames : 1;
+		}
+		else
+			animation.framesRemaining = 0;
+	}
+
+	uint16_t maxTileId = 0;
+	for (const auto &animation : tileAnimations)
+	{
+		if (animation.tileId > maxTileId)
+			maxTileId = animation.tileId;
+	}
+
+	tileAnimationLookup.assign(maxTileId + 1, -1);
+	for (int i = 0; i < tileAnimations.size(); i++)
+	{
+		tileAnimationLookup[tileAnimations[i].tileId] = static_cast<int>(i);
+	}	
+}
+
+void TileMap::LoadLayers(TileMapHeader header, std::ifstream& file)
+{
+	for (uint16_t i = 0; i < header.layerCount; i++)
+	{
+		TileMapLayer layer;
+		ReadBytes(file, layer.name, 8);
+		layer.name[8] = '\0';
+		TrimTrailingSpaces(layer.name);
+
+		ReadBytes(file, &layer.width, sizeof(layer.width));
+		ReadBytes(file, &layer.height, sizeof(layer.height));
+
+		int numTiles = layer.width * layer.height;
+		std::vector<uint16_t> tempTileData(numTiles);
+		ReadBytes(file, tempTileData.data(), numTiles * sizeof(uint16_t));
+
+		//I need to rethink how I am organizing the layers, this is dumb		
+		if (std::strcmp(layer.name, "COL") == 0)
+		{
+			collisionWidth = layer.width;
+			collisionHeight = layer.height;
+			collisionData.resize(numTiles);
+			for (int t = 0; t < numTiles; t++)
+			{
+				collisionData[t] = (tempTileData[t] == 0);
+			}
+		}
+		else
+		{
+			layer.tileData = std::move(tempTileData);
+			layers.push_back(layer);
+		}
+	}
+}
+
+void TileMap::LoadEvents(TileMapHeader header, std::ifstream& file)
+{
+	//In RPGMaker, exits are just an event.  This needs to all be cleaned up
+	//so I can load a variety of event types.  
+	exits.resize(header.exitCount);
+	for (auto &exit : exits)
+	{
+		ReadBytes(file, exit.targetMapId, 8);
+		exit.targetMapId[8] = '\0';
+		TrimTrailingSpaces(exit.targetMapId);
+		ReadBytes(file, &exit.startTileX, sizeof(exit.startTileX));
+		ReadBytes(file, &exit.startTileY, sizeof(exit.startTileY));
+		ReadBytes(file, &exit.endTileX, sizeof(exit.endTileX));
+		ReadBytes(file, &exit.endTileY, sizeof(exit.endTileY));
+		ReadBytes(file, &exit.targetX, sizeof(exit.targetX));
+		ReadBytes(file, &exit.targetY, sizeof(exit.targetY));
+	}
+}
+
+bool TileMap::Update()
+{
+	bool changed = false;
+	for (TileAnimation &animation : tileAnimations)
+	{
+		animation.framesRemaining--;
+		if (animation.framesRemaining <= 0)
+		{
+			animation.currentFrameIndex = (animation.currentFrameIndex + 1) % animation.frameCount;
+			int durationFrames = static_cast<int>((animation.frames[animation.currentFrameIndex].duration * TARGET_FPS) / 1000);
+			animation.framesRemaining = durationFrames > 0 ? durationFrames : 1;
+			changed = true;
+		}
+	}
+	return changed;
+}
+
+void TileMap::Draw(BITMAP *dest, BITMAP *tileset, int scrollTileX, int scrollTileY) const
+{
+	if (layers.empty())
+		return;
+
+	DrawLayer(dest, tileset, layers[0], scrollTileX, scrollTileY, true);
+	for (int l = 1; l < layers.size(); l++)
+	{
+		if (!IsUpperLayer(layers[l]))
+			DrawLayer(dest, tileset, layers[l], scrollTileX, scrollTileY, false);
+	}
+}
+
+void TileMap::DrawUpper(BITMAP *dest, BITMAP *tileset, int scrollTileX, int scrollTileY) const
+{
+	for (int layerIndex = 1; layerIndex < layers.size(); layerIndex++)
+	{
+		if (IsUpperLayer(layers[layerIndex]))
+			DrawLayer(dest, tileset, layers[layerIndex], scrollTileX, scrollTileY, false);
+	}
+}
+
+bool TileMap::IsWalkable(int tileX, int tileY) const
+{
+	if (collisionData.empty())
+		return true;
+	if (tileX < 0 || tileX >= collisionWidth || tileY < 0 || tileY >= collisionHeight)
+		return false;
+	return collisionData[tileY * collisionWidth + tileX];
+}
+
+bool TileMap::CheckCollision(int playerX, int playerY, int width, int height) const
+{
+	if (playerX < 0 || playerY < 0)
+		return true;
+
+	int startTileX = playerX / TILE_SIZE;
+	int endTileX = (playerX + width - 1) / TILE_SIZE;
+	int startTileY = playerY / TILE_SIZE;
+	int endTileY = (playerY + height - 1) / TILE_SIZE;
+
+	for (int tileY = startTileY; tileY <= endTileY; tileY++)
+	{
+		for (int tileX = startTileX; tileX <= endTileX; tileX++)
+		{
+			if (!IsWalkable(tileX, tileY))
+				return true;
+		}
+	}
+	return false;
+}
+
+bool TileMap::IsUpperLayer(const TileMapLayer &layer) const
+{
+	//Again, I need to rethink how I am organizing layers.  Good enough for now.
+	return (std::strncmp(layer.name, "OL", 2) == 0 || std::strncmp(layer.name, "ol", 2) == 0);
+}
+
+int TileMap::GetAnimatedTileId(int tileId) const
+{
+	if (tileId < tileAnimationLookup.size())
+	{
+		int animationIndex = tileAnimationLookup[tileId];
+		if (animationIndex != -1)
+		{
+			const auto &animation = tileAnimations[animationIndex];
+			if (animation.currentFrameIndex < animation.frameCount)
+				return animation.frames[animation.currentFrameIndex].tileId;
+		}
+	}
+	return tileId;
+}
+
+void TileMap::DrawLayer(BITMAP *dest, BITMAP *tileset, const TileMapLayer &layer, int scrollTileX, int scrollTileY, bool clearBackground) const
+{
+	const int tileSize = TILE_SIZE;
+	const int tilesetCols = tileset->w / tileSize;
+
+	for (int tileY = 0; tileY < VSCREEN_TILE_H; tileY++)
+	{
+		int mapY = scrollTileY + tileY;
+		int destY = tileY * tileSize;		
+
+		for (int tileX = 0; tileX < VSCREEN_TILE_W; tileX++)
+		{
+			int mapX = scrollTileX + tileX;
+			int destX = tileX * tileSize;
+			bool tileDrawn = false;
+
+			if ((mapY >= 0 && mapY < layer.height) && (mapX >= 0 && mapX < layer.width))
+			{	
+				uint16_t displayIndex = GetAnimatedTileId(layer.tileData[mapY * layer.width + mapX]);
+				if (displayIndex > 0)
+				{
+					int tileIndex = displayIndex - 1;
+					int srcX = (tileIndex % tilesetCols) * tileSize;
+					int srcY = (tileIndex / tilesetCols) * tileSize;
+					masked_blit(tileset, dest, srcX, srcY, destX, destY, tileSize, tileSize);
+					tileDrawn = true;
+				}
+			}
+
+			if (!tileDrawn && clearBackground)
+				rectfill(dest, destX, destY, destX + (tileSize - 1), destY + (tileSize - 1), 0);
+		}
+	}
+}
+
+void TileMap::ReadBytes(std::istream &is, void *dest, int size)
+{
+	if (size > 0)
+		is.read(reinterpret_cast<char*>(dest), size);
+}
+
+void TileMap::TrimTrailingSpaces(char* str)
+{
+	int len = std::strlen(str);
+	while (len > 0 && str[len - 1] == ' ')
+	{
+		len--;
+		str[len] = '\0';
+	}
+}
