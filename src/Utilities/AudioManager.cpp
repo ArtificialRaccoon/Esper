@@ -1,6 +1,6 @@
 #include "Utilities/AudioManager.h"
 
-SAMPLE * AudioManager::LoadOrGetSample(const std::string &name)
+SAMPLE* AudioManager::LoadOrGetSample(const std::string &name)
 {
 	auto it = sampleCache.find(name);
 	if (it != sampleCache.end())

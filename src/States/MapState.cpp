@@ -1,5 +1,4 @@
 #include "States/MapState.h"
-#include <algorithm>
 
 void MapState::InitState()
 {
@@ -24,6 +23,8 @@ void MapState::InitState()
 		GameDatabase::Instance().GetStartingTileX(),
 		GameDatabase::Instance().GetStartingTileY()
 	);
+
+	AudioManager::Instance().PlayMusic("ff3town");
 }
 
 void MapState::MapTransition(const std::string &mapName, int targetTileX, int targetTileY)

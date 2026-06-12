@@ -1,6 +1,7 @@
 #pragma once
 #include <stdexcept>
 #include <cstdio>
+#include <algorithm>
 #include "GameProcessor.h"
 #include "States/BaseState.h"
 #include "Core/GameDefines.h"
@@ -10,6 +11,7 @@
 #include "Core/TileMap.h"
 #include "Core/GlobalEnumerations.h"
 #include "Utilities/InputManager.h"
+#include "Utilities/AudioManager.h"
 
 class MapState : public BaseState
 {
