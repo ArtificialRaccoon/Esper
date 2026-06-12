@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "start_map": "TESTMAP",
+  "start_map": "OVERWRLD",
   "start_x": 14,
   "start_y": 10,
   "maps": [
-    "TESTMAP"
+    "OVERWRLD"
   ]
 }

@@ -28,7 +28,7 @@ void MapState::InitState()
 
 void MapState::MapTransition(const std::string &mapName, int targetTileX, int targetTileY)
 {
-	tileMap.Load(".\\" + mapName + ".bin");
+	tileMap.Load(".\\MAPS\\" + mapName + ".bin");
 
 	mapWidthPx = tileMap.GetLayers().empty() ? 0 : tileMap.GetLayers()[0].width * TILE_SIZE;
 	mapHeightPx = tileMap.GetLayers().empty() ? 0 : tileMap.GetLayers()[0].height * TILE_SIZE;
