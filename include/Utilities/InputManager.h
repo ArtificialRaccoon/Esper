@@ -29,6 +29,8 @@ class InputManager
 
   	private:
 		InputManager() = default;
+		InputManager(const InputManager &) = delete;
+		InputManager &operator=(const InputManager &) = delete;
 		std::map<int, long> keyCooldown;
 		std::queue<KeyPress> keyBuffer;
 		const int COOLDOWN_MS = 150;
