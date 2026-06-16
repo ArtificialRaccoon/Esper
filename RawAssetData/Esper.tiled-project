@@ -1,0 +1,145 @@
+{
+    "automappingRulesFile": "",
+    "commands": [
+    ],
+    "compatibilityVersion": 1100,
+    "extensionsPath": "extensions",
+    "folders": [
+        "."
+    ],
+    "properties": [
+    ],
+    "propertyTypes": [
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 3,
+            "members": [
+                {
+                    "name": "mapName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "tileX",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "tiley",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "type",
+                    "type": "list",
+                    "value": [
+                        {
+                            "type": "string",
+                            "value": "TRANSFER"
+                        }
+                    ]
+                }
+            ],
+            "name": "EventCommand",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 1,
+            "members": [
+                {
+                    "name": "command",
+                    "propertyType": "EventCommand",
+                    "type": "class",
+                    "value": {
+                    }
+                },
+                {
+                    "name": "trigger",
+                    "type": "list",
+                    "value": [
+                        {
+                            "type": "string",
+                            "value": "Interact"
+                        },
+                        {
+                            "type": "string",
+                            "value": "PlayerTouch"
+                        },
+                        {
+                            "type": "string",
+                            "value": "EventTouch"
+                        }
+                    ]
+                }
+            ],
+            "name": "EventPage",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ff42a45e",
+            "drawFill": true,
+            "id": 2,
+            "members": [
+                {
+                    "name": "Pages",
+                    "type": "list",
+                    "value": [
+                        {
+                            "propertyType": "EventPage",
+                            "type": "class",
+                            "value": {
+                                "trigger": [
+                                    {
+                                        "type": "string",
+                                        "value": "Interact"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "value": "PlayerTouch"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            "name": "GameEvent",
+            "type": "class",
+            "useAs": [
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        }
+    ]
+}

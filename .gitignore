@@ -33,5 +33,6 @@
 
 allegro/*
 build/*
+RawAssetData/Esper.tiled-session
 assets/GAMEDB.bin
-assets/MAPS/TESTMAP.bin
+assets/MAPS/*.bin

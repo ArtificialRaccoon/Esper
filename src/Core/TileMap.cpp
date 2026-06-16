@@ -5,7 +5,7 @@ void TileMap::Clear()
 	layers.clear();
 	tileAnimations.clear();
 	tileAnimationLookup.clear();
-	exits.clear();
+	events.clear();
 	collisionData.clear();
 	collisionWidth = 0;
 	collisionHeight = 0;
@@ -93,20 +93,27 @@ void TileMap::LoadLayers(TileMapHeader header, std::ifstream& file)
 
 void TileMap::LoadEvents(TileMapHeader header, std::ifstream& file)
 {
-	//In RPGMaker, exits are just an event.  This needs to all be cleaned up
-	//so I can load a variety of event types.  
-	exits.resize(header.exitCount);
-	for (auto &exit : exits)
+	events.clear();
+	for (uint16_t i = 0; i < header.eventCount; i++)
 	{
-		ReadBytes(file, exit.targetMapId, 8);
-		exit.targetMapId[8] = '\0';
-		TrimTrailingSpaces(exit.targetMapId);
-		ReadBytes(file, &exit.startTileX, sizeof(exit.startTileX));
-		ReadBytes(file, &exit.startTileY, sizeof(exit.startTileY));
-		ReadBytes(file, &exit.endTileX, sizeof(exit.endTileX));
-		ReadBytes(file, &exit.endTileY, sizeof(exit.endTileY));
-		ReadBytes(file, &exit.targetX, sizeof(exit.targetX));
-		ReadBytes(file, &exit.targetY, sizeof(exit.targetY));
+		GameEvent gameEvent;
+		ReadBytes(file, &gameEvent, sizeof(gameEvent));
+
+		Event event(
+			gameEvent.eventId,
+			gameEvent.tileX, gameEvent.tileY,
+			gameEvent.endTileX, gameEvent.endTileY
+		);
+
+		for (uint16_t p = 0; p < gameEvent.pageCount; p++)
+		{
+			EventPage page;
+			ReadBytes(file, &page, sizeof(page));
+			page.command[63] = '\0';
+			event.AddPage(page);
+		}
+
+		events.push_back(std::move(event));
 	}
 }
 

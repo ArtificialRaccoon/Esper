@@ -115,13 +115,34 @@ void MapState::ProcessInput(GameProcessor *game)
 	int playerStartTileY = (playerMapY + CHARACTER_HITBOX_Y_OFFSET) / TILE_SIZE;
 	int playerEndTileY = (playerMapY + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT - 1) / TILE_SIZE;
 
-	for (const auto &exit : tileMap.GetExits())
+	for (auto &event : tileMap.GetEvents())
 	{
-		if (playerStartTileX <= exit.endTileX && playerEndTileX >= exit.startTileX &&
-			playerStartTileY <= exit.endTileY && playerEndTileY >= exit.startTileY)
+		event.UpdateActivePage();
+
+		const EventPage* activePage = event.GetActivePage();
+		if (!activePage)
+			continue;
+
+		if (activePage->trigger == EventTriggerType::PLAYER_TOUCH)
 		{
-			MapTransition(exit.targetMapId, exit.targetX, exit.targetY);
-			break;
+			int eventStartX = event.GetTileX();
+			int eventEndX = event.GetEndTileX();
+			int eventStartY = event.GetTileY();
+			int eventEndY = event.GetEndTileY();
+
+			if (playerStartTileX <= eventEndX && playerEndTileX >= eventStartX &&
+				playerStartTileY <= eventEndY && playerEndTileY >= eventStartY)
+			{
+				//Need to handle commands better later.
+				int tx = 0;
+				int ty = 0;
+				char mapName[64];
+				if (sscanf(activePage->command, "transfer %63s %d %d", mapName, &tx, &ty) == 3)
+				{
+					MapTransition(mapName, tx, ty);
+					break;
+				}
+			}
 		}
 	}
 

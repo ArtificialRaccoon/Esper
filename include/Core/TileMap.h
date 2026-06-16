@@ -9,24 +9,13 @@
 #include "Core/GameDefines.h"
 #include "Core/TileAnimation.h"
 #include "Core/TileMapLayer.h"
+#include "Events/Event.h"
 
 struct __attribute__((packed)) TileMapHeader
 {
 	uint16_t layerCount;
 	uint16_t tileAnimationCount;
-	uint16_t exitCount;
-};
-
-//Should reall be in its own file
-struct __attribute__((packed)) MapExit
-{
-	char targetMapId[9];
-	uint16_t startTileX;
-	uint16_t startTileY;
-	uint16_t endTileX;
-	uint16_t endTileY;
-	uint16_t targetX;
-	uint16_t targetY;
+	uint16_t eventCount;
 };
 
 class TileMap
@@ -45,9 +34,9 @@ class TileMap
 		bool Update();
 		int GetCollisionWidth() const { return collisionWidth; }
 		int GetCollisionHeight() const { return collisionHeight; }
+		std::vector<Event>& GetEvents() { return events; }
 		const std::vector<TileMapLayer>& GetLayers() const { return layers; }
-		const std::vector<TileAnimation>& GetTileAnimations() const { return tileAnimations; }
-		const std::vector<MapExit>& GetExits() const { return exits; }
+		const std::vector<TileAnimation>& GetTileAnimations() const { return tileAnimations; }		
 		const std::vector<bool>& GetCollisionData() const { return collisionData; }		
 
 	private:		
@@ -58,11 +47,11 @@ class TileMap
 		int GetAnimatedTileId(int tileId) const;
 
 	private:
+		std::vector<bool> collisionData;
+		std::vector<int> tileAnimationLookup;					
+		std::vector<Event> events;
 		std::vector<TileMapLayer> layers;
 		std::vector<TileAnimation> tileAnimations;
-		std::vector<int> tileAnimationLookup;
-		std::vector<MapExit> exits;
-		std::vector<bool> collisionData;
 		int collisionWidth = 0;
 		int collisionHeight = 0;
 };
