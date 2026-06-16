@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="6">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="8">
  <tileset firstgid="1" source="OVERWRLD.tsx"/>
  <layer id="1" name="BL1" width="32" height="32">
   <data encoding="csv">
@@ -91,6 +91,23 @@
        <property name="trigger" value="PLAYER_TOUCH"/>
        <property name="variableCondition" type="int" value="0"/>
        <property name="variableThreshold" type="int" value="0"/>
+      </properties>
+     </item>
+    </property>
+   </properties>
+  </object>
+  <object id="7" name="STEP" type="GameEvent" x="32" y="96" width="64" height="32">
+   <properties>
+    <property name="Pages" type="list">
+     <item type="class" propertytype="EventPage">
+      <properties>
+       <property name="command" type="class" propertytype="EventCommand">
+        <properties>
+         <property name="sfxName" value="STEP"/>
+         <property name="type" value="PLAY_SFX"/>
+        </properties>
+       </property>
+       <property name="trigger" value="PLAYER_TOUCH"/>
       </properties>
      </item>
     </property>

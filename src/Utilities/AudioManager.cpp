@@ -13,13 +13,43 @@ SAMPLE* AudioManager::LoadOrGetSample(const std::string &name)
 	return sample;
 }
 
+bool AudioManager::IsSFXPlaying(const std::string &name)
+{
+	auto it = activeVoices.find(name);
+	if (it == activeVoices.end())
+		return false;
+
+	int voice = it->second;
+	if (voice < 0)
+		return false;
+
+	if (voice_get_position(voice) == -1)
+		return false;
+
+	return true;
+}
+
 void AudioManager::PlaySFX(const std::string &name, int volume, int pan)
 {
+	if (IsSFXPlaying(name))
+		return;
+
 	SAMPLE *sample = LoadOrGetSample(name);
 	if (sample)
 	{
 		int scaledVolume = (volume * sfxVolume) / 255;
-		play_sample(sample, scaledVolume, pan, 1000, FALSE);
+		int voice = play_sample(sample, scaledVolume, pan, 1000, FALSE);
+		if (voice >= 0)
+		{
+			for (auto it = activeVoices.begin(); it != activeVoices.end(); )
+			{
+				if (it->second == voice)
+					it = activeVoices.erase(it);
+				else
+					it++;
+			}
+			activeVoices[name] = voice;
+		}
 	}
 }
 

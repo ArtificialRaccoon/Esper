@@ -21,6 +21,11 @@
                     "value": ""
                 },
                 {
+                    "name": "sfxName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
                     "name": "tileX",
                     "type": "int",
                     "value": 0
@@ -37,6 +42,10 @@
                         {
                             "type": "string",
                             "value": "TRANSFER"
+                        },
+                        {
+                            "type": "string",
+                            "value": "PLAY_SFX"
                         }
                     ]
                 }
@@ -73,15 +82,11 @@
                     "value": [
                         {
                             "type": "string",
-                            "value": "Interact"
+                            "value": "ACTION_BUTTON"
                         },
                         {
                             "type": "string",
-                            "value": "PlayerTouch"
-                        },
-                        {
-                            "type": "string",
-                            "value": "EventTouch"
+                            "value": "PLAYER_TOUCH"
                         }
                     ]
                 }

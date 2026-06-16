@@ -133,14 +133,23 @@ void MapState::ProcessInput(GameProcessor *game)
 			if (playerStartTileX <= eventEndX && playerEndTileX >= eventStartX &&
 				playerStartTileY <= eventEndY && playerEndTileY >= eventStartY)
 			{
-				//Need to handle commands better later.
-				int tx = 0;
-				int ty = 0;
-				char mapName[64];
-				if (sscanf(activePage->command, "transfer %63s %d %d", mapName, &tx, &ty) == 3)
+				if (playerMoving)
 				{
-					MapTransition(mapName, tx, ty);
-					break;
+					//Need to handle commands better later.
+					int tx = 0;
+					int ty = 0;
+					char mapName[64];
+					char sfxName[64];
+					if (sscanf(activePage->command, "transfer %63s %d %d", mapName, &tx, &ty) == 3)
+					{
+						MapTransition(mapName, tx, ty);
+						break;
+					}
+					else if (sscanf(activePage->command, "play_sfx %63s", sfxName) == 1)
+					{
+						AudioManager::Instance().PlaySFX(sfxName);
+						break;
+					}
 				}
 			}
 		}

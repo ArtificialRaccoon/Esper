@@ -143,6 +143,9 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                         tx = cmd_prop.get("tileX", 0)
                         ty = cmd_prop.get("tiley", cmd_prop.get("tileY", 0))
                         cmd_str = f"transfer {map_name} {tx} {ty}"
+                    elif cmd_type == "PLAY_SFX":
+                        sfx_name = cmd_prop.get("sfxName", "")
+                        cmd_str = f"play_sfx {sfx_name}"
                     else:
                         cmd_str = "none"
                 else:

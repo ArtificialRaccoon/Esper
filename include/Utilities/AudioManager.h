@@ -14,6 +14,7 @@ class AudioManager
 
 		void PlaySFX(const std::string &name) { PlaySFX(name, 255, 128); }
 		void PlaySFX(const std::string &name, int volume, int pan);
+		bool IsSFXPlaying(const std::string &name);
 
 		void PlayMusic(const std::string &name, bool loop = true);
 		void StopMusic();
@@ -36,6 +37,7 @@ class AudioManager
 
   	private:
 		std::map<std::string, SAMPLE *> sampleCache;
+		std::map<std::string, int> activeVoices;
 		MIDI *currentMidi = nullptr;
 		std::string currentTrackName;
 		int musicVolume = 255;
