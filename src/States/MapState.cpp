@@ -47,12 +47,21 @@ void MapState::MapTransition(const std::string &mapName, int targetTileX, int ta
 
 void MapState::AcquireInput(GameProcessor *game)
 {
+	interactPressed = false;
+	playerMoving = false;
+
+	//My idea is to have a series of "overlays" which we will generically access.
+	//This is just placeholder stuff right now.
+	if (dialogBox.IsActive())
+	{
+		if (InputManager::Instance().IsKeyPressed(KEY_ENTER) || InputManager::Instance().IsKeyPressed(KEY_SPACE))
+			interactPressed = true;
+		return;
+	}
+
 	int dx = 0;
 	int dy = 0;
 	int speed = WALK_SPEED;
-
-	interactPressed = false;
-	playerMoving = false;
 
 	if (InputManager::Instance().IsKeyDown(KEY_UP))
 	{
@@ -110,6 +119,14 @@ void MapState::AcquireInput(GameProcessor *game)
 
 void MapState::ProcessInput(GameProcessor *game)
 {
+	if (dialogBox.IsActive())
+	{
+		dialogBox.Update();
+		if (interactPressed)
+			dialogBox.Advance();
+		return;
+	}
+
 	int playerStartTileX = (playerMapX + CHARACTER_HITBOX_X_OFFSET) / TILE_SIZE;
 	int playerEndTileX = (playerMapX + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH - 1) / TILE_SIZE;
 	int playerStartTileY = (playerMapY + CHARACTER_HITBOX_Y_OFFSET) / TILE_SIZE;
@@ -150,6 +167,11 @@ void MapState::ProcessInput(GameProcessor *game)
 						AudioManager::Instance().PlaySFX(sfxName);
 						break;
 					}
+					else if (std::strcmp(activePage->command, "show_text") == 0 || std::strncmp(activePage->command, "show_text ", 10) == 0)
+					{
+						dialogBox.SetText("This is placeholder.\nPress Enter to dismiss.");
+						break;
+					}
 				}
 			}
 		}
@@ -182,6 +204,9 @@ void MapState::FrameRender(GameProcessor *game)
 	blit(BUFFER, game->GetBackBuffer(), 0, 0, 0, 0, VSCREEN_W, VSCREEN_H);
 	player.Draw(game->GetBackBuffer(), playerMapX - currentScrollTileX * TILE_SIZE, playerMapY - currentScrollTileY * TILE_SIZE);
 	tileMap.DrawUpper(game->GetBackBuffer(), tileset, currentScrollTileX, currentScrollTileY);
+
+	if (dialogBox.IsActive())
+		dialogBox.Draw(game->GetBackBuffer(), scrollX % TILE_SIZE, scrollY % TILE_SIZE);
 }
 
 void MapState::UnloadResources()

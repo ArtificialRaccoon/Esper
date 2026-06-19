@@ -10,15 +10,17 @@
 #include "Core/Player.h"
 #include "Core/TileMap.h"
 #include "Core/GlobalEnumerations.h"
+#include "Core/DialogBox.h"
 #include "Utilities/InputManager.h"
 #include "Utilities/AudioManager.h"
+
+
 
 class MapState : public BaseState
 {
 	public:
 		MapState() = default;
 		~MapState() override { UnloadResources(); }
-
 		void InitState() override;
 		void Pause() override { }
 		void Resume() override { set_palette(CommonGUI::Instance().GetPalette()); }
@@ -42,7 +44,8 @@ class MapState : public BaseState
 		int prevScrollTileY = -1;
 		bool tilemapChanged = false;
 		bool playerMoving = false;
-		
+		DialogBox dialogBox;
+
 	private:
 		void MapTransition(const std::string &mapName, int targetTileX, int targetTileY);
 };

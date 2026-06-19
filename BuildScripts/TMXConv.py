@@ -146,6 +146,8 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                     elif cmd_type == "PLAY_SFX":
                         sfx_name = cmd_prop.get("sfxName", "")
                         cmd_str = f"play_sfx {sfx_name}"
+                    elif cmd_type == "SHOW_TEXT":
+                        cmd_str = f"show_text"                        
                     else:
                         cmd_str = "none"
                 else:

@@ -37,17 +37,8 @@
                 },
                 {
                     "name": "type",
-                    "type": "list",
-                    "value": [
-                        {
-                            "type": "string",
-                            "value": "TRANSFER"
-                        },
-                        {
-                            "type": "string",
-                            "value": "PLAY_SFX"
-                        }
-                    ]
+                    "type": "string",
+                    "value": ""
                 }
             ],
             "name": "EventCommand",
@@ -78,17 +69,8 @@
                 },
                 {
                     "name": "trigger",
-                    "type": "list",
-                    "value": [
-                        {
-                            "type": "string",
-                            "value": "ACTION_BUTTON"
-                        },
-                        {
-                            "type": "string",
-                            "value": "PLAYER_TOUCH"
-                        }
-                    ]
+                    "type": "string",
+                    "value": ""
                 }
             ],
             "name": "EventPage",
@@ -118,16 +100,6 @@
                             "propertyType": "EventPage",
                             "type": "class",
                             "value": {
-                                "trigger": [
-                                    {
-                                        "type": "string",
-                                        "value": "Interact"
-                                    },
-                                    {
-                                        "type": "string",
-                                        "value": "PlayerTouch"
-                                    }
-                                ]
                             }
                         }
                     ]
