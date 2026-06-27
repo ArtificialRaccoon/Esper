@@ -134,6 +134,19 @@ def convert(tmx_path: Path, out_path: Path) -> None:
             for page in event["pages"]:
                 trigger_str = page.get("trigger", "NONE")
                 trigger_val = TRIGGER_MAP.get(trigger_str, 3)
+                graphic_frame = int(page.get("spriteFrame", 0))
+                is_walkable = int(page.get("isWalkable", 1))
+                var_threshold = int(page.get("variableThreshold", 0))
+                
+                def clean_cond(val):
+                    if val is None or val == 0 or val == "0" or val == "":
+                        return ""
+                    return str(val)
+
+                switch_cond_bytes = clean_cond(page.get("switchCondition", "")).encode("ascii", errors="replace")[:23].ljust(24, b"\0")
+                var_cond_bytes = clean_cond(page.get("variableCondition", "")).encode("ascii", errors="replace")[:23].ljust(24, b"\0")
+                self_switch_cond_bytes = clean_cond(page.get("selfSwitchCondition", "")).encode("ascii", errors="replace")[:7].ljust(8, b"\0")
+                sprite_name_bytes = clean_cond(page.get("spriteName", "")).encode("ascii", errors="replace")[:7].ljust(8, b"\0")
                 
                 cmd_prop = page.get("command", "")
                 if isinstance(cmd_prop, dict):
@@ -147,15 +160,19 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                         sfx_name = cmd_prop.get("sfxName", "")
                         cmd_str = f"play_sfx {sfx_name}"
                     elif cmd_type == "SHOW_TEXT":
-                        cmd_str = f"show_text"                        
+                        text = cmd_prop.get("text", "")
+                        cmd_str = f"show_text {text}" if text else "show_text"
+                    elif cmd_type == "OPEN_CHEST":
+                        self_switch = cmd_prop.get("selfSwitch", "A")
+                        text = cmd_prop.get("text", "")
+                        cmd_str = f"open_chest {self_switch} {text}"
                     else:
                         cmd_str = "none"
                 else:
                     cmd_str = str(cmd_prop) if cmd_prop is not None else ""
                 
-                cmd_bytes = cmd_str.encode("ascii", errors="replace")[:64].ljust(64, b"\0")
-                
-                fout.write(struct.pack("<B64s", trigger_val, cmd_bytes))
+                cmd_bytes = cmd_str.encode("ascii", errors="replace")[:63].ljust(64, b"\0")                                
+                fout.write(struct.pack("<BBBh24s24s8s8s64s", trigger_val, graphic_frame, is_walkable, var_threshold, switch_cond_bytes, var_cond_bytes, self_switch_cond_bytes, sprite_name_bytes, cmd_bytes))
 
     print(f"Layers: {len(tile_layers)}, Animations: {len(animations)}, Events: {len(events)} -> {out_path}")
 

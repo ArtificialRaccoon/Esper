@@ -1,4 +1,5 @@
 #include "States/MapState.h"
+#include "Core/GameState.h"
 
 void MapState::InitState()
 {
@@ -29,7 +30,34 @@ void MapState::InitState()
 
 void MapState::MapTransition(const std::string &mapName, int targetTileX, int targetTileY)
 {
+	currentMapName = mapName;
 	tileMap.Load(".\\MAPS\\" + mapName + ".bin");
+
+	for (auto &pair : eventSprites)
+	{
+		if (pair.second)
+			destroy_bitmap(pair.second);
+	}
+	eventSprites.clear();
+
+	for (auto &event : tileMap.GetEvents())
+	{
+		event.UpdateActivePage(currentMapName);
+		for (const auto &page : event.GetPages())
+		{
+			if (page.spriteName[0] != '\0')
+			{
+				std::string sName = page.spriteName;
+				if (eventSprites.find(sName) == eventSprites.end())
+				{
+					std::string path = ".\\TILESETS\\" + sName + ".bmp";
+					BITMAP* bmp = load_bitmap(path.c_str(), nullptr);
+					if (bmp)
+						eventSprites[sName] = bmp;
+				}
+			}
+		}
+	}
 
 	mapWidthPx = tileMap.GetLayers().empty() ? 0 : tileMap.GetLayers()[0].width * TILE_SIZE;
 	mapHeightPx = tileMap.GetLayers().empty() ? 0 : tileMap.GetLayers()[0].height * TILE_SIZE;
@@ -45,19 +73,42 @@ void MapState::MapTransition(const std::string &mapName, int targetTileX, int ta
 	tilemapChanged = true;
 }
 
+bool MapState::CheckEventCollision(int targetX, int targetY)
+{
+	int startTileX = targetX / TILE_SIZE;
+	int endTileX = (targetX + CHARACTER_HITBOX_WIDTH - 1) / TILE_SIZE;
+	int startTileY = targetY / TILE_SIZE;
+	int endTileY = (targetY + CHARACTER_HITBOX_HEIGHT - 1) / TILE_SIZE;
+
+	for (auto &event : tileMap.GetEvents())
+	{
+		event.UpdateActivePage(currentMapName);
+		const EventPage* activePage = event.GetActivePage();
+		if (activePage && activePage->isWalkable == 0)
+		{
+			int eventStartX = event.GetTileX();
+			int eventEndX = event.GetEndTileX();
+			int eventStartY = event.GetTileY();
+			int eventEndY = event.GetEndTileY();
+
+			if (startTileX <= eventEndX && endTileX >= eventStartX && startTileY <= eventEndY && endTileY >= eventStartY)
+				return true;
+		}
+	}
+	return false;
+}
+
 void MapState::AcquireInput(GameProcessor *game)
 {
 	interactPressed = false;
 	playerMoving = false;
 
+	if (InputManager::Instance().IsKeyPressed(KEY_ENTER) || InputManager::Instance().IsKeyPressed(KEY_SPACE))
+		interactPressed = true;
+
 	//My idea is to have a series of "overlays" which we will generically access.
-	//This is just placeholder stuff right now.
 	if (dialogBox.IsActive())
-	{
-		if (InputManager::Instance().IsKeyPressed(KEY_ENTER) || InputManager::Instance().IsKeyPressed(KEY_SPACE))
-			interactPressed = true;
 		return;
-	}
 
 	int dx = 0;
 	int dy = 0;
@@ -88,11 +139,9 @@ void MapState::AcquireInput(GameProcessor *game)
 	if (dx != 0)
 	{
 		int newX = std::clamp(playerMapX + dx, 0, mapWidthPx - CHARACTER_SPRITE_WIDTH);
-		if (!tileMap.CheckCollision(
-			newX + CHARACTER_HITBOX_X_OFFSET, 
-			playerMapY + CHARACTER_HITBOX_Y_OFFSET, 
-			CHARACTER_HITBOX_WIDTH, 
-			CHARACTER_HITBOX_HEIGHT))
+		int targetX = newX + CHARACTER_HITBOX_X_OFFSET;
+		int targetY = playerMapY + CHARACTER_HITBOX_Y_OFFSET;
+		if (!tileMap.CheckCollision(targetX, targetY, CHARACTER_HITBOX_WIDTH, CHARACTER_HITBOX_HEIGHT) && !CheckEventCollision(targetX, targetY))
 		{
 			playerMapX = newX;
 			playerMoving = true;
@@ -102,11 +151,9 @@ void MapState::AcquireInput(GameProcessor *game)
 	if (dy != 0)
 	{
 		int newY = std::clamp(playerMapY + dy, 0, mapHeightPx - CHARACTER_SPRITE_HEIGHT);
-		if (!tileMap.CheckCollision(
-			playerMapX + CHARACTER_HITBOX_X_OFFSET, 
-			newY + CHARACTER_HITBOX_Y_OFFSET, 
-			CHARACTER_HITBOX_WIDTH, 
-			CHARACTER_HITBOX_HEIGHT))
+		int targetX = playerMapX + CHARACTER_HITBOX_X_OFFSET;
+		int targetY = newY + CHARACTER_HITBOX_Y_OFFSET;
+		if (!tileMap.CheckCollision(targetX, targetY, CHARACTER_HITBOX_WIDTH, CHARACTER_HITBOX_HEIGHT) && !CheckEventCollision(targetX, targetY))
 		{
 			playerMapY = newY;
 			playerMoving = true;
@@ -114,7 +161,7 @@ void MapState::AcquireInput(GameProcessor *game)
 	}
 
 	if (InputManager::Instance().IsKeyPressed(KEY_ESC))
-		interactPressed = true;
+		game->Quit();
 }
 
 void MapState::ProcessInput(GameProcessor *game)
@@ -132,9 +179,65 @@ void MapState::ProcessInput(GameProcessor *game)
 	int playerStartTileY = (playerMapY + CHARACTER_HITBOX_Y_OFFSET) / TILE_SIZE;
 	int playerEndTileY = (playerMapY + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT - 1) / TILE_SIZE;
 
+	if (interactPressed)
+	{
+		int playerCenterX = playerMapX + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH / 2;
+		int playerCenterY = playerMapY + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT / 2;
+		int playerTileX = playerCenterX / TILE_SIZE;
+		int playerTileY = playerCenterY / TILE_SIZE;
+		int targetTileX = playerTileX;
+		int targetTileY = playerTileY;
+
+		switch (currentMoveDir)
+		{
+			case Direction::UP:    targetTileY--; break;
+			case Direction::DOWN:  targetTileY++; break;
+			case Direction::LEFT:  targetTileX--; break;
+			case Direction::RIGHT: targetTileX++; break;
+		}
+
+		for (auto &event : tileMap.GetEvents())
+		{
+			event.UpdateActivePage(currentMapName);
+			const EventPage* activePage = event.GetActivePage();
+			if (!activePage)
+				continue;
+
+			if (activePage->trigger == EventTriggerType::ACTION_BUTTON)
+			{
+				int eventStartX = event.GetTileX();
+				int eventEndX = event.GetEndTileX();
+				int eventStartY = event.GetTileY();
+				int eventEndY = event.GetEndTileY();
+
+				if (targetTileX >= eventStartX && targetTileX <= eventEndX &&
+					targetTileY >= eventStartY && targetTileY <= eventEndY)
+				{
+					char selfSwitchName[8];
+					char dialogText[44]; // I need to stand up a string lookup table
+					if (std::sscanf(activePage->command, "open_chest %7s %43[^\n]", selfSwitchName, dialogText) == 2)
+					{
+						if (!GameState::Instance().GetSelfSwitch(currentMapName, event.GetEventId(), selfSwitchName))
+						{
+							GameState::Instance().SetSelfSwitch(currentMapName, event.GetEventId(), selfSwitchName, true);
+							dialogBox.SetText(dialogText);
+						}
+						event.UpdateActivePage(currentMapName);
+						break;
+					}
+					else if (std::strncmp(activePage->command, "show_text ", 10) == 0)
+					{
+						dialogBox.SetText(activePage->command + 10);
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	for (auto &event : tileMap.GetEvents())
 	{
-		event.UpdateActivePage();
+		event.UpdateActivePage(currentMapName);
 
 		const EventPage* activePage = event.GetActivePage();
 		if (!activePage)
@@ -152,17 +255,16 @@ void MapState::ProcessInput(GameProcessor *game)
 			{
 				if (playerMoving)
 				{
-					//Need to handle commands better later.
 					int tx = 0;
 					int ty = 0;
-					char mapName[64];
-					char sfxName[64];
-					if (sscanf(activePage->command, "transfer %63s %d %d", mapName, &tx, &ty) == 3)
+					char mapName[44];
+					char sfxName[55];
+					if (sscanf(activePage->command, "transfer %43s %d %d", mapName, &tx, &ty) == 3)
 					{
 						MapTransition(mapName, tx, ty);
 						break;
 					}
-					else if (sscanf(activePage->command, "play_sfx %63s", sfxName) == 1)
+					else if (sscanf(activePage->command, "play_sfx %54s", sfxName) == 1)
 					{
 						AudioManager::Instance().PlaySFX(sfxName);
 						break;
@@ -182,9 +284,6 @@ void MapState::ProcessInput(GameProcessor *game)
 
 	tilemapChanged |= tileMap.Update();
 	player.Update(playerMoving, currentMoveDir);
-
-	if (interactPressed)
-		game->Quit();
 }
 
 void MapState::FrameRender(GameProcessor *game)
@@ -202,6 +301,25 @@ void MapState::FrameRender(GameProcessor *game)
 	}
 
 	blit(BUFFER, game->GetBackBuffer(), 0, 0, 0, 0, VSCREEN_W, VSCREEN_H);
+	for (auto &event : tileMap.GetEvents())
+	{
+		event.UpdateActivePage(currentMapName);
+		const EventPage* activePage = event.GetActivePage();
+		if (activePage && activePage->spriteFrame > 0 && activePage->spriteName[0] != '\0')
+		{
+			std::string sName = activePage->spriteName;
+			auto it = eventSprites.find(sName);
+			if (it != eventSprites.end() && it->second != nullptr)
+			{
+				int frameIndex = activePage->spriteFrame - 1;
+				int drawX = event.GetMapX() - currentScrollTileX * TILE_SIZE;
+				int drawY = event.GetMapY() - currentScrollTileY * TILE_SIZE;
+				if (drawX >= -TILE_SIZE && drawX < VSCREEN_W && drawY >= -TILE_SIZE && drawY < VSCREEN_H)
+					masked_blit(it->second, game->GetBackBuffer(), frameIndex * TILE_SIZE, 0, drawX, drawY, TILE_SIZE, TILE_SIZE);
+			}
+		}
+	}
+
 	player.Draw(game->GetBackBuffer(), playerMapX - currentScrollTileX * TILE_SIZE, playerMapY - currentScrollTileY * TILE_SIZE);
 	tileMap.DrawUpper(game->GetBackBuffer(), tileset, currentScrollTileX, currentScrollTileY);
 
@@ -222,4 +340,11 @@ void MapState::UnloadResources()
 		destroy_bitmap(BUFFER);
 		BUFFER = nullptr;
 	}
+
+	for (auto &pair : eventSprites)
+	{
+		if (pair.second)
+			destroy_bitmap(pair.second);
+	}
+	eventSprites.clear();
 }

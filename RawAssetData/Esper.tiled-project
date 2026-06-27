@@ -21,7 +21,17 @@
                     "value": ""
                 },
                 {
+                    "name": "selfSwitch",
+                    "type": "string",
+                    "value": ""
+                },
+                {
                     "name": "sfxName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "text",
                     "type": "string",
                     "value": ""
                 },
@@ -68,9 +78,44 @@
                     }
                 },
                 {
+                    "name": "isWalkable",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "selfSwitchCondition",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "spriteFrame",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "spriteName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "switchCondition",
+                    "type": "string",
+                    "value": ""
+                },
+                {
                     "name": "trigger",
                     "type": "string",
                     "value": ""
+                },
+                {
+                    "name": "variableCondition",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "variableThreshold",
+                    "type": "int",
+                    "value": 0
                 }
             ],
             "name": "EventPage",

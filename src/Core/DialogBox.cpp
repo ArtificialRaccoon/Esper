@@ -2,7 +2,19 @@
 
 void DialogBox::SetText(const std::string &rawText, int speed)
 {
-	fullText = rawText;
+	std::string processedText = "";
+	for (size_t i = 0; i < rawText.length(); i++)
+	{
+		if (rawText[i] == '\\' && i + 1 < rawText.length() && rawText[i + 1] == 'n')
+		{
+			processedText += '\n';
+			i++;
+		}
+		else
+			processedText += rawText[i];
+	}
+
+	fullText = processedText;
 	lines.clear();
 	currentCharIndex = 0;
 	textSpeed = speed;
@@ -15,9 +27,9 @@ void DialogBox::SetText(const std::string &rawText, int speed)
 	std::string currentLine = "";
 	std::string word = "";
 
-	for (size_t i = 0; i <= rawText.length(); i++)
+	for (size_t i = 0; i <= processedText.length(); i++)
 	{
-		char c = (i < rawText.length()) ? rawText[i] : '\0';
+		char c = (i < processedText.length()) ? processedText[i] : '\0';
 		if (c == ' ' || c == '\n' || c == '\0')
 		{
 			if (!word.empty())

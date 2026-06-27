@@ -2,6 +2,8 @@
 #include <stdexcept>
 #include <cstdio>
 #include <algorithm>
+#include <unordered_map>
+#include <string>
 #include "GameProcessor.h"
 #include "States/BaseState.h"
 #include "Core/GameDefines.h"
@@ -13,8 +15,6 @@
 #include "Core/DialogBox.h"
 #include "Utilities/InputManager.h"
 #include "Utilities/AudioManager.h"
-
-
 
 class MapState : public BaseState
 {
@@ -45,7 +45,10 @@ class MapState : public BaseState
 		bool tilemapChanged = false;
 		bool playerMoving = false;
 		DialogBox dialogBox;
+		std::string currentMapName;
+		std::unordered_map<std::string, BITMAP*> eventSprites;
 
 	private:
 		void MapTransition(const std::string &mapName, int targetTileX, int targetTileY);
+		bool CheckEventCollision(int targetX, int targetY);
 };
