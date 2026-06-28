@@ -1,5 +1,6 @@
 #include "States/MapState.h"
 #include "Core/GameState.h"
+#include "Core/StringDatabase.h"
 
 void MapState::InitState()
 {
@@ -214,12 +215,13 @@ void MapState::ProcessInput(GameProcessor *game)
 					targetTileY >= eventStartY && targetTileY <= eventEndY)
 				{
 					char selfSwitchName[8];
-					char dialogText[44]; // I need to stand up a string lookup table
-					if (std::sscanf(activePage->command, "open_chest %7s %43[^\n]", selfSwitchName, dialogText) == 2)
+					int stringIdx = -1;
+					if (std::sscanf(activePage->command, "open_chest %7s %d", selfSwitchName, &stringIdx) == 2)
 					{
 						if (!GameState::Instance().GetSelfSwitch(currentMapName, event.GetEventId(), selfSwitchName))
 						{
 							GameState::Instance().SetSelfSwitch(currentMapName, event.GetEventId(), selfSwitchName, true);
+							std::string dialogText = StringDatabase::Instance().GetString(static_cast<uint16_t>(stringIdx));
 							dialogBox.SetText(dialogText);
 						}
 						event.UpdateActivePage(currentMapName);
@@ -227,7 +229,9 @@ void MapState::ProcessInput(GameProcessor *game)
 					}
 					else if (std::strncmp(activePage->command, "show_text ", 10) == 0)
 					{
-						dialogBox.SetText(activePage->command + 10);
+						int stringId = std::atoi(activePage->command + 10);
+						std::string dialogText = StringDatabase::Instance().GetString(static_cast<uint16_t>(stringId));
+						dialogBox.SetText(dialogText);
 						break;
 					}
 				}
@@ -269,9 +273,11 @@ void MapState::ProcessInput(GameProcessor *game)
 						AudioManager::Instance().PlaySFX(sfxName);
 						break;
 					}
-					else if (std::strcmp(activePage->command, "show_text") == 0 || std::strncmp(activePage->command, "show_text ", 10) == 0)
+					else if (std::strncmp(activePage->command, "show_text ", 10) == 0)
 					{
-						dialogBox.SetText("This is placeholder.\nPress Enter to dismiss.");
+						int stringId = std::atoi(activePage->command + 10);
+						std::string dialogText = StringDatabase::Instance().GetString(static_cast<uint16_t>(stringId));
+						dialogBox.SetText(dialogText);
 						break;
 					}
 				}

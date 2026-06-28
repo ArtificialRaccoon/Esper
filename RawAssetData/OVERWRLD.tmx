@@ -120,6 +120,8 @@
       <properties>
        <property name="command" type="class" propertytype="EventCommand">
         <properties>
+         <property name="text">This is placeholder.
+Press Enter to dismiss.</property>
          <property name="type" value="SHOW_TEXT"/>
         </properties>
        </property>
@@ -141,8 +143,8 @@
          <property name="type" value="OPEN_CHEST"/>
         </properties>
        </property>
+       <property name="isWalkable" type="bool" value="false"/>
        <property name="spriteFrame" type="int" value="1"/>
-       <property name="isWalkable" type="int" value="0"/>
        <property name="spriteName" value="CHEST"/>
        <property name="trigger" value="ACTION_BUTTON"/>
       </properties>
@@ -155,9 +157,9 @@
          <property name="type" value="SHOW_TEXT"/>
         </properties>
        </property>
-       <property name="spriteFrame" type="int" value="2"/>
-       <property name="isWalkable" type="int" value="0"/>
+       <property name="isWalkable" type="bool" value="false"/>
        <property name="selfSwitchCondition" value="A"/>
+       <property name="spriteFrame" type="int" value="2"/>
        <property name="spriteName" value="CHEST"/>
        <property name="trigger" value="ACTION_BUTTON"/>
       </properties>

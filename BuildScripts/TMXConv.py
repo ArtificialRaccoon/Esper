@@ -34,6 +34,8 @@ def parse_value(el, val_type):
             return int(val)
         except ValueError:
             return 0
+    elif val_type == "bool":
+        return val == "true"
     return val
 
 def parse_properties(el):
@@ -77,6 +79,16 @@ def convert(tmx_path: Path, out_path: Path) -> None:
         "NONE": 3,
     }
 
+    import json
+    strings_json_path = Path(__file__).parent.parent / "assets" / "STRINGS.json"
+    string_map = {}
+    if strings_json_path.is_file():
+        try:
+            with open(strings_json_path, "r", encoding="utf-8") as f:
+                string_map = json.load(f)
+        except Exception as e:
+            print(f"Warning: Failed to parse {strings_json_path}: {e}")
+    
     events = []
     if (events_group := tmx_root.find(".//objectgroup[@name='EVENTS']")) is not None:
         for obj in events_group.findall("object"):
@@ -161,11 +173,13 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                         cmd_str = f"play_sfx {sfx_name}"
                     elif cmd_type == "SHOW_TEXT":
                         text = cmd_prop.get("text", "")
-                        cmd_str = f"show_text {text}" if text else "show_text"
+                        string_idx = string_map.get(text, -1)
+                        cmd_str = f"show_text {string_idx}"
                     elif cmd_type == "OPEN_CHEST":
                         self_switch = cmd_prop.get("selfSwitch", "A")
                         text = cmd_prop.get("text", "")
-                        cmd_str = f"open_chest {self_switch} {text}"
+                        string_idx = string_map.get(text, -1)
+                        cmd_str = f"open_chest {self_switch} {string_idx}"
                     else:
                         cmd_str = "none"
                 else:

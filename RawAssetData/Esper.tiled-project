@@ -99,8 +99,8 @@
                 },
                 {
                     "name": "switchCondition",
-                    "type": "string",
-                    "value": ""
+                    "type": "int",
+                    "value": 0
                 },
                 {
                     "name": "trigger",
@@ -109,8 +109,8 @@
                 },
                 {
                     "name": "variableCondition",
-                    "type": "string",
-                    "value": ""
+                    "type": "int",
+                    "value": 0
                 },
                 {
                     "name": "variableThreshold",

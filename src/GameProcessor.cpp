@@ -14,6 +14,8 @@ void GameProcessor::InitializeGame()
 		exit(0);
 	}
 
+	StringDatabase::Instance().Load(".\\STRINGS.BIN");
+
 	set_color_depth(8);
 	if (set_gfx_mode(GFX_MODEX, SCREEN_WIDTH, SCREEN_HEIGHT, 352, 480) != 0)
 	{
