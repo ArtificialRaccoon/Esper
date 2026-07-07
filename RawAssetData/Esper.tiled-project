@@ -1,0 +1,227 @@
+{
+    "automappingRulesFile": "",
+    "commands": [
+    ],
+    "compatibilityVersion": 1100,
+    "extensionsPath": "extensions",
+    "folders": [
+        "."
+    ],
+    "properties": [
+    ],
+    "propertyTypes": [
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 3,
+            "members": [
+                {
+                    "name": "incSelfVar",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "incVar",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "mapName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "op",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "selfSwitch",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "sfxName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "switch",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "text",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "tileX",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "tiley",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "type",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "value",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "varName",
+                    "type": "string",
+                    "value": ""
+                }
+            ],
+            "name": "EventCommand",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 1,
+            "members": [
+                {
+                    "name": "commands",
+                    "type": "list",
+                    "value": [
+                        {
+                            "propertyType": "EventCommand",
+                            "type": "class",
+                            "value": {
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "isWalkable",
+                    "type": "bool",
+                    "value": true
+                },
+                {
+                    "name": "moveFrequency",
+                    "type": "int",
+                    "value": 30
+                },
+                {
+                    "name": "movePath",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "moveSpeed",
+                    "type": "int",
+                    "value": 1
+                },
+                {
+                    "name": "moveType",
+                    "type": "string",
+                    "value": "FIXED"
+                },
+                {
+                    "name": "selfSwitchCondition",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "selfVariableCondition",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "spriteFrame",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "spriteName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "switchCondition",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "trigger",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "variableCondition",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "variableThreshold",
+                    "type": "int",
+                    "value": 0
+                }
+            ],
+            "name": "EventPage",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ff42a45e",
+            "drawFill": true,
+            "id": 2,
+            "members": [
+                {
+                    "name": "Pages",
+                    "type": "list",
+                    "value": [
+                        {
+                            "propertyType": "EventPage",
+                            "type": "class",
+                            "value": {
+                            }
+                        }
+                    ]
+                }
+            ],
+            "name": "GameEvent",
+            "type": "class",
+            "useAs": [
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        }
+    ]
+}

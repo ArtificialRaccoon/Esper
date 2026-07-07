@@ -1,11 +1,16 @@
 #include "Core/TileMap.h"
+#include "Events/EventSerialization.h"
+#include "Events/EventCommand.h"
+#include "Utilities/StringUtils.h"
+#include "Events/TriggerEvent.h"
+#include "Events/ActorEvent.h"
 
 void TileMap::Clear()
 {
 	layers.clear();
 	tileAnimations.clear();
 	tileAnimationLookup.clear();
-	exits.clear();
+	events.clear();
 	collisionData.clear();
 	collisionWidth = 0;
 	collisionHeight = 0;
@@ -63,7 +68,7 @@ void TileMap::LoadLayers(TileMapHeader header, std::ifstream& file)
 		TileMapLayer layer;
 		ReadBytes(file, layer.name, 8);
 		layer.name[8] = '\0';
-		TrimTrailingSpaces(layer.name);
+		StringUtils::TrimTrailingSpaces(layer.name);
 
 		ReadBytes(file, &layer.width, sizeof(layer.width));
 		ReadBytes(file, &layer.height, sizeof(layer.height));
@@ -93,20 +98,65 @@ void TileMap::LoadLayers(TileMapHeader header, std::ifstream& file)
 
 void TileMap::LoadEvents(TileMapHeader header, std::ifstream& file)
 {
-	//In RPGMaker, exits are just an event.  This needs to all be cleaned up
-	//so I can load a variety of event types.  
-	exits.resize(header.exitCount);
-	for (auto &exit : exits)
+	events.clear();
+	for (uint16_t i = 0; i < header.eventCount; i++)
 	{
-		ReadBytes(file, exit.targetMapId, 8);
-		exit.targetMapId[8] = '\0';
-		TrimTrailingSpaces(exit.targetMapId);
-		ReadBytes(file, &exit.startTileX, sizeof(exit.startTileX));
-		ReadBytes(file, &exit.startTileY, sizeof(exit.startTileY));
-		ReadBytes(file, &exit.endTileX, sizeof(exit.endTileX));
-		ReadBytes(file, &exit.endTileY, sizeof(exit.endTileY));
-		ReadBytes(file, &exit.targetX, sizeof(exit.targetX));
-		ReadBytes(file, &exit.targetY, sizeof(exit.targetY));
+		GameEvent gameEvent;
+		ReadBytes(file, &gameEvent, sizeof(gameEvent));
+
+		std::vector<EventPage> tempPages;
+		bool hasSprite = false;
+
+		for (uint16_t p = 0; p < gameEvent.pageCount; p++)
+		{
+			EventPageHeader pageHeader;
+			ReadBytes(file, &pageHeader, sizeof(pageHeader));
+
+			std::vector<std::shared_ptr<IEventCommand>> commands;
+			for (uint16_t c = 0; c < pageHeader.commandCount; c++)
+			{
+				EventCommand cmd;
+				ReadBytes(file, &cmd, sizeof(cmd));
+				commands.push_back(CreateEventCommand(cmd));
+			}
+
+			EventPage page(pageHeader, std::move(commands));
+			if (!page.GetSpriteName().empty() && page.GetSpriteFrame() == 0)
+			{
+				hasSprite = true;
+			}
+			tempPages.push_back(std::move(page));
+		}
+
+		uint16_t evId = gameEvent.eventId;
+		int evTileX = gameEvent.tileX;
+		int evTileY = gameEvent.tileY;
+		int evEndTileX = gameEvent.endTileX;
+		int evEndTileY = gameEvent.endTileY;
+
+		std::unique_ptr<Event> ev;
+		if (hasSprite)
+		{
+			ev = std::make_unique<ActorEvent>(
+				evId,
+				evTileX, evTileY
+			);
+		}
+		else
+		{
+			ev = std::make_unique<TriggerEvent>(
+				evId,
+				evTileX, evTileY,
+				evEndTileX, evEndTileY
+			);
+		}
+
+		for (auto &page : tempPages)
+		{
+			ev->AddPage(std::move(page));
+		}
+
+		events.push_back(std::move(ev));
 	}
 }
 
@@ -132,11 +182,12 @@ void TileMap::Draw(BITMAP *dest, BITMAP *tileset, int scrollTileX, int scrollTil
 	if (layers.empty())
 		return;
 
-	DrawLayer(dest, tileset, layers[0], scrollTileX, scrollTileY, true);
+	clear_to_color(dest, 0);
+	DrawLayer(dest, tileset, layers[0], scrollTileX, scrollTileY);
 	for (int l = 1; l < layers.size(); l++)
 	{
 		if (!IsUpperLayer(layers[l]))
-			DrawLayer(dest, tileset, layers[l], scrollTileX, scrollTileY, false);
+			DrawLayer(dest, tileset, layers[l], scrollTileX, scrollTileY);
 	}
 }
 
@@ -145,7 +196,7 @@ void TileMap::DrawUpper(BITMAP *dest, BITMAP *tileset, int scrollTileX, int scro
 	for (int layerIndex = 1; layerIndex < layers.size(); layerIndex++)
 	{
 		if (IsUpperLayer(layers[layerIndex]))
-			DrawLayer(dest, tileset, layers[layerIndex], scrollTileX, scrollTileY, false);
+			DrawLayer(dest, tileset, layers[layerIndex], scrollTileX, scrollTileY);
 	}
 }
 
@@ -200,7 +251,7 @@ int TileMap::GetAnimatedTileId(int tileId) const
 	return tileId;
 }
 
-void TileMap::DrawLayer(BITMAP *dest, BITMAP *tileset, const TileMapLayer &layer, int scrollTileX, int scrollTileY, bool clearBackground) const
+void TileMap::DrawLayer(BITMAP *dest, BITMAP *tileset, const TileMapLayer &layer, int scrollTileX, int scrollTileY) const
 {
 	const int tileSize = TILE_SIZE;
 	const int tilesetCols = tileset->w / tileSize;
@@ -214,7 +265,6 @@ void TileMap::DrawLayer(BITMAP *dest, BITMAP *tileset, const TileMapLayer &layer
 		{
 			int mapX = scrollTileX + tileX;
 			int destX = tileX * tileSize;
-			bool tileDrawn = false;
 
 			if ((mapY >= 0 && mapY < layer.height) && (mapX >= 0 && mapX < layer.width))
 			{	
@@ -225,12 +275,8 @@ void TileMap::DrawLayer(BITMAP *dest, BITMAP *tileset, const TileMapLayer &layer
 					int srcX = (tileIndex % tilesetCols) * tileSize;
 					int srcY = (tileIndex / tilesetCols) * tileSize;
 					masked_blit(tileset, dest, srcX, srcY, destX, destY, tileSize, tileSize);
-					tileDrawn = true;
 				}
 			}
-
-			if (!tileDrawn && clearBackground)
-				rectfill(dest, destX, destY, destX + (tileSize - 1), destY + (tileSize - 1), 0);
 		}
 	}
 }
@@ -239,14 +285,4 @@ void TileMap::ReadBytes(std::istream &is, void *dest, int size)
 {
 	if (size > 0)
 		is.read(reinterpret_cast<char*>(dest), size);
-}
-
-void TileMap::TrimTrailingSpaces(char* str)
-{
-	int len = std::strlen(str);
-	while (len > 0 && str[len - 1] == ' ')
-	{
-		len--;
-		str[len] = '\0';
-	}
 }

@@ -1,26 +1,21 @@
 #pragma once
-#include "allegro.h"
-#include "GameDefines.h"
-#include "GlobalEnumerations.h"
+#include <functional>
+#include "Core/Actor.h"
+#include "Core/IRenderable.h"
 
-class Player
+class Player : public Actor, public IRenderable
 {
 	public:
-		Player();
-		~Player();
-
+		Player() {}
+		~Player() override;
 		bool Load(const char *filename);
 		void Update(bool isMoving, Direction dir);
-		void Draw(BITMAP *dest, int screenX, int screenY);
+		void ProcessMovementInput(int mapWidthPx, int mapHeightPx, const std::function<bool(int, int)> &isWalkable);
 
-		Direction GetDirection() const { return currentDir; }
-		int GetCurrentFrame() const { return currentFrame; }
-		bool IsMoving() const { return moving; }
+	public:
+		int GetSortY() const override;
+		void Draw(BITMAP *dest, int scrollTileX, int scrollTileY) const override;
 
 	private:
 		BITMAP *spriteSheet = nullptr;
-		Direction currentDir = Direction::DOWN;
-		int currentFrame = 0;
-		int animTick = 0;
-		bool moving = false;
 };

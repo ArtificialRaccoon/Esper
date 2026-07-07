@@ -4,7 +4,14 @@ CommonGUI::~CommonGUI()
 {
 	for (auto fontObj : systemFonts)
 	{
-		if (fontObj) destroy_font(fontObj);
+		if (fontObj)
+			destroy_font(fontObj);
+	}
+
+	if (guiSheet)
+	{
+		destroy_bitmap(guiSheet);
+		guiSheet = nullptr;
 	}
 }
 
@@ -12,7 +19,7 @@ CommonGUI::CommonGUI()
 {
 	PALETTE tmp;
 
-	//Load the GUI Tilesheet here...
+	guiSheet = load_bitmap(".\\OTHER\\GUI.bmp", tmp);
 
 	//Initialize master palette to all black for now
 	for (int i = 0; i < 256; i++)

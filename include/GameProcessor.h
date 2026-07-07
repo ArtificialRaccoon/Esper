@@ -10,6 +10,7 @@
 #include "allegro.h"
 #include "Core/GameDefines.h"
 #include "Core/GameDatabase.h"
+#include "Core/StringDatabase.h"
 #include "States/BaseState.h"
 #include "Utilities/InputManager.h"
 

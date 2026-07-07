@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="20" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="2">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="20" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="2">
  <tileset firstgid="1" source="OVERWRLD.tsx"/>
  <layer id="1" name="BL1" width="20" height="15">
   <data encoding="csv">
@@ -77,12 +77,29 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="5" name="EXITS">
-  <object id="1" name="RIGHT" x="304" y="96" width="16" height="96">
+ <objectgroup id="5" name="EVENTS">
+  <object id="1" name="RIGHT" type="GameEvent" x="304" y="96" width="16" height="96">
    <properties>
-    <property name="targetmapid" value="OVERWRLD"/>
-    <property name="targetx" value="1"/>
-    <property name="targety" value="7"/>
+    <property name="Pages" type="list">
+     <item type="class" propertytype="EventPage">
+      <properties>
+       <property name="commands" type="list">
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="mapName" value="OVERWRLD"/>
+          <property name="tileX" type="int" value="1"/>
+          <property name="tiley" type="int" value="7"/>
+          <property name="type" value="TRANSFER"/>
+         </properties>
+        </item>
+       </property>
+       <property name="switchCondition" value=""/>
+       <property name="trigger" value="PLAYER_TOUCH"/>
+       <property name="variableCondition" value=""/>
+       <property name="variableThreshold" type="int" value="0"/>
+      </properties>
+     </item>
+    </property>
    </properties>
   </object>
  </objectgroup>

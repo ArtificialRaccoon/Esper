@@ -1,4 +1,11 @@
+#include <typeinfo>
 #include "States/MapState.h"
+#include "Core/GameState.h"
+#include "Core/StringDatabase.h"
+#include "Core/InteractionSystem.h"
+#include "Core/TextureCache.h"
+#include "Utilities/Collision.h"
+#include "Events/ActorEvent.h"
 
 void MapState::InitState()
 {
@@ -14,9 +21,8 @@ void MapState::InitState()
 	set_palette(CommonGUI::Instance().GetPalette());
 
 	player.Load(".\\CHARS\\CHAR.bmp");
-
-	playerMoving = false;
-	currentMoveDir = Direction::DOWN;
+	player.SetMoving(false);
+	player.SetDirection(Direction::DOWN);
 
 	MapTransition(
 		GameDatabase::Instance().GetStartingMapName(),
@@ -29,110 +35,127 @@ void MapState::InitState()
 
 void MapState::MapTransition(const std::string &mapName, int targetTileX, int targetTileY)
 {
+	currentMapName = mapName;
+	activeEventId = 0;
 	tileMap.Load(".\\MAPS\\" + mapName + ".bin");
+
+	TextureCache::Instance().Clear();
+	for (auto &event : tileMap.GetEvents())
+	{
+		event->UpdateActivePage(currentMapName);
+		const EventPage *page = event->GetActivePage();
+		if (page && !page->GetSpriteName().empty())
+			TextureCache::Instance().Get(page->GetSpriteName());
+	}
 
 	mapWidthPx = tileMap.GetLayers().empty() ? 0 : tileMap.GetLayers()[0].width * TILE_SIZE;
 	mapHeightPx = tileMap.GetLayers().empty() ? 0 : tileMap.GetLayers()[0].height * TILE_SIZE;
 
-	playerMapX = targetTileX * TILE_SIZE;
-	playerMapY = targetTileY * TILE_SIZE;
+	player.SetTilePosition(targetTileX, targetTileY);
 
-	scrollX = std::clamp(playerMapX - (SCREEN_WIDTH - CHARACTER_SPRITE_WIDTH) / 2, 0, mapWidthPx - SCREEN_WIDTH);
-	scrollY = std::clamp(playerMapY - (SCREEN_HEIGHT - CHARACTER_SPRITE_HEIGHT) / 2, 0, mapHeightPx - SCREEN_HEIGHT);
+	scrollX = std::clamp(player.GetMapX() - (SCREEN_WIDTH - CHARACTER_SPRITE_WIDTH) / 2, 0, std::max(0, mapWidthPx - SCREEN_WIDTH));
+	scrollY = std::clamp(player.GetMapY() - (SCREEN_HEIGHT - CHARACTER_SPRITE_HEIGHT) / 2, 0, std::max(0, mapHeightPx - SCREEN_HEIGHT));
 
 	prevScrollTileX = -1;
 	prevScrollTileY = -1;
 	tilemapChanged = true;
 }
 
+bool MapState::CheckEventCollision(int targetX, int targetY)
+{
+	Rect targetRect(targetX, targetX + CHARACTER_HITBOX_WIDTH - 1, targetY, targetY + CHARACTER_HITBOX_HEIGHT - 1);
+	Rect curRect(player.GetMapX() + CHARACTER_HITBOX_X_OFFSET,
+	             player.GetMapX() + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH - 1,
+	             player.GetMapY() + CHARACTER_HITBOX_Y_OFFSET,
+	             player.GetMapY() + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT - 1);
+
+	for (auto &event : tileMap.GetEvents())
+	{
+		const EventPage* activePage = event->GetActivePage();
+		if (activePage && activePage->GetIsWalkable() == 0)
+		{
+			Rect evRect = event->GetHitbox();
+
+			if (Collision::RectOverlaps(targetRect, evRect))
+			{
+				if (!Collision::RectOverlaps(curRect, evRect))
+					return true;
+				
+				int curOverlapArea = Collision::GetOverlapArea(curRect, evRect);
+				int targetOverlapArea = Collision::GetOverlapArea(targetRect, evRect);
+				if (targetOverlapArea >= curOverlapArea)
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool MapState::IsWalkable(int targetMapX, int targetMapY)
+{
+	int hitboxX = targetMapX + CHARACTER_HITBOX_X_OFFSET;
+	int hitboxY = targetMapY + CHARACTER_HITBOX_Y_OFFSET;
+	if (tileMap.CheckCollision(hitboxX, hitboxY, CHARACTER_HITBOX_WIDTH, CHARACTER_HITBOX_HEIGHT))
+		return false;
+	if (CheckEventCollision(hitboxX, hitboxY))
+		return false;
+	return true;
+}
+
 void MapState::AcquireInput(GameProcessor *game)
 {
-	int dx = 0;
-	int dy = 0;
-	int speed = WALK_SPEED;
+	for (auto &event : tileMap.GetEvents())
+	{
+		event->UpdateActivePage(currentMapName);
+	}
 
 	interactPressed = false;
-	playerMoving = false;
-
-	if (InputManager::Instance().IsKeyDown(KEY_UP))
-	{
-		dy = -speed;
-		currentMoveDir = Direction::UP;
-	}
-	else if (InputManager::Instance().IsKeyDown(KEY_DOWN))
-	{
-		dy = speed;
-		currentMoveDir = Direction::DOWN;
-	}
-
-	if (InputManager::Instance().IsKeyDown(KEY_LEFT))
-	{
-		dx = -speed;
-		currentMoveDir = Direction::LEFT;
-	}
-	else if (InputManager::Instance().IsKeyDown(KEY_RIGHT))
-	{
-		dx = speed;
-		currentMoveDir = Direction::RIGHT;
-	}
-
-	if (dx != 0)
-	{
-		int newX = std::clamp(playerMapX + dx, 0, mapWidthPx - CHARACTER_SPRITE_WIDTH);
-		if (!tileMap.CheckCollision(
-			newX + CHARACTER_HITBOX_X_OFFSET, 
-			playerMapY + CHARACTER_HITBOX_Y_OFFSET, 
-			CHARACTER_HITBOX_WIDTH, 
-			CHARACTER_HITBOX_HEIGHT))
-		{
-			playerMapX = newX;
-			playerMoving = true;
-		}
-	}
-
-	if (dy != 0)
-	{
-		int newY = std::clamp(playerMapY + dy, 0, mapHeightPx - CHARACTER_SPRITE_HEIGHT);
-		if (!tileMap.CheckCollision(
-			playerMapX + CHARACTER_HITBOX_X_OFFSET, 
-			newY + CHARACTER_HITBOX_Y_OFFSET, 
-			CHARACTER_HITBOX_WIDTH, 
-			CHARACTER_HITBOX_HEIGHT))
-		{
-			playerMapY = newY;
-			playerMoving = true;
-		}
-	}
-
-	if (InputManager::Instance().IsKeyPressed(KEY_ESC))
+	if (InputManager::Instance().IsKeyPressed(KEY_ENTER) || InputManager::Instance().IsKeyPressed(KEY_SPACE))
 		interactPressed = true;
+
+	if (dialogBox.IsActive())
+		return;
+
+	player.ProcessMovementInput(mapWidthPx, mapHeightPx, [this](int x, int y) { return IsWalkable(x, y); });
+	if (InputManager::Instance().IsKeyPressed(KEY_ESC))
+		game->Quit();
 }
 
 void MapState::ProcessInput(GameProcessor *game)
 {
-	int playerStartTileX = (playerMapX + CHARACTER_HITBOX_X_OFFSET) / TILE_SIZE;
-	int playerEndTileX = (playerMapX + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH - 1) / TILE_SIZE;
-	int playerStartTileY = (playerMapY + CHARACTER_HITBOX_Y_OFFSET) / TILE_SIZE;
-	int playerEndTileY = (playerMapY + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT - 1) / TILE_SIZE;
-
-	for (const auto &exit : tileMap.GetExits())
+	if (dialogBox.IsActive())
 	{
-		if (playerStartTileX <= exit.endTileX && playerEndTileX >= exit.startTileX &&
-			playerStartTileY <= exit.endTileY && playerEndTileY >= exit.startTileY)
+		dialogBox.Update();
+		if (interactPressed)
+			dialogBox.Advance();
+
+		if (!dialogBox.IsActive())
 		{
-			MapTransition(exit.targetMapId, exit.targetX, exit.targetY);
-			break;
+			for (auto &event : tileMap.GetEvents())
+			{
+				if (typeid(*event) == typeid(ActorEvent))
+					static_cast<ActorEvent*>(event.get())->ReleasePlayerFacing();
+			}
+			activeEventId = 0;
 		}
+		return;
 	}
 
-	scrollX = std::clamp(playerMapX - (SCREEN_WIDTH - CHARACTER_SPRITE_WIDTH) / 2, 0, mapWidthPx - SCREEN_WIDTH);
-	scrollY = std::clamp(playerMapY - (SCREEN_HEIGHT - CHARACTER_SPRITE_HEIGHT) / 2, 0, mapHeightPx - SCREEN_HEIGHT);
+	if (interactPressed)
+		InteractionSystem::ProcessAction(player, tileMap, currentMapName, *this, activeEventId);
+	InteractionSystem::ProcessTouch(player, tileMap, currentMapName, *this);
+
+	for (auto &event : tileMap.GetEvents())
+	{
+		if (typeid(*event) == typeid(ActorEvent))
+			static_cast<ActorEvent*>(event.get())->Update(tileMap, player.GetMapX(), player.GetMapY(), tileMap.GetEvents(), dialogBox.IsActive());
+	}
+
+	scrollX = std::clamp(player.GetMapX() - (SCREEN_WIDTH - CHARACTER_SPRITE_WIDTH) / 2, 0, std::max(0, mapWidthPx - SCREEN_WIDTH));
+	scrollY = std::clamp(player.GetMapY() - (SCREEN_HEIGHT - CHARACTER_SPRITE_HEIGHT) / 2, 0, std::max(0, mapHeightPx - SCREEN_HEIGHT));
 
 	tilemapChanged |= tileMap.Update();
-	player.Update(playerMoving, currentMoveDir);
-
-	if (interactPressed)
-		game->Quit();
+	player.UpdateAnimation();
 }
 
 void MapState::FrameRender(GameProcessor *game)
@@ -150,8 +173,10 @@ void MapState::FrameRender(GameProcessor *game)
 	}
 
 	blit(BUFFER, game->GetBackBuffer(), 0, 0, 0, 0, VSCREEN_W, VSCREEN_H);
-	player.Draw(game->GetBackBuffer(), playerMapX - currentScrollTileX * TILE_SIZE, playerMapY - currentScrollTileY * TILE_SIZE);
+	renderSystem.DrawEntities(game->GetBackBuffer(), player, tileMap, currentMapName, currentScrollTileX, currentScrollTileY);
 	tileMap.DrawUpper(game->GetBackBuffer(), tileset, currentScrollTileX, currentScrollTileY);
+	if (dialogBox.IsActive())
+		dialogBox.Draw(game->GetBackBuffer(), scrollX % TILE_SIZE, scrollY % TILE_SIZE);
 }
 
 void MapState::UnloadResources()
@@ -167,4 +192,16 @@ void MapState::UnloadResources()
 		destroy_bitmap(BUFFER);
 		BUFFER = nullptr;
 	}
+
+	TextureCache::Instance().Clear();
+}
+
+void MapState::ShowText(const std::string &text)
+{
+	dialogBox.SetText(text);
+}
+
+void MapState::TransferPlayer(const std::string &mapName, int tileX, int tileY)
+{
+	MapTransition(mapName, tileX, tileY);
 }

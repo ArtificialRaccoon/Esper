@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="2">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="13">
  <tileset firstgid="1" source="OVERWRLD.tsx"/>
  <layer id="1" name="BL1" width="32" height="32">
   <data encoding="csv">
@@ -73,15 +73,211 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,40,41,40,41
 </data>
  </layer>
- <objectgroup id="6" name="EXITS">
-  <object id="1" name="LEFT" x="0" y="80" width="16" height="368">
+ <objectgroup id="6" name="EVENTS">
+  <object id="1" name="LEFT" type="GameEvent" x="0" y="80" width="16" height="368">
    <properties>
-    <property name="targetmapid" value="SEAWRLD"/>
-    <property name="targetx" value="17"/>
-    <property name="targety" value="8"/>
+    <property name="Pages" type="list">
+     <item type="class" propertytype="EventPage">
+      <properties>
+        <property name="commands" type="list">
+         <item type="class" propertytype="EventCommand">
+          <properties>
+           <property name="mapName" value="SEAWRLD"/>
+           <property name="tileX" type="int" value="17"/>
+           <property name="tiley" type="int" value="8"/>
+           <property name="type" value="TRANSFER"/>
+          </properties>
+         </item>
+        </property>
+        <property name="switchCondition" value=""/>
+        <property name="trigger" value="PLAYER_TOUCH"/>
+        <property name="variableCondition" value=""/>
+        <property name="variableThreshold" type="int" value="0"/>
+       </properties>
+      </item>
+     </property>
+    </properties>
+   </object>
+  <object id="7" name="STEP" type="GameEvent" x="32" y="96" width="64" height="32">
+   <properties>
+    <property name="Pages" type="list">
+     <item type="class" propertytype="EventPage">
+      <properties>
+        <property name="commands" type="list">
+         <item type="class" propertytype="EventCommand">
+          <properties>
+           <property name="sfxName" value="STEP"/>
+           <property name="type" value="PLAY_SFX"/>
+          </properties>
+         </item>
+        </property>
+        <property name="trigger" value="PLAYER_TOUCH"/>
+       </properties>
+      </item>
+     </property>
+    </properties>
+   </object>
+  <object id="11" name="MESSAGE" type="GameEvent" x="32" y="48" width="16" height="16">
+   <properties>
+    <property name="Pages" type="list">
+     <item type="class" propertytype="EventPage">
+      <properties>
+         <property name="commands" type="list">
+          <item type="class" propertytype="EventCommand">
+           <properties>
+            <property name="text">This is placeholder.
+Press Enter to dismiss.</property>
+            <property name="type" value="SHOW_TEXT"/>
+           </properties>
+          </item>
+         </property>
+         <property name="trigger" value="PLAYER_TOUCH"/>
+        </properties>
+       </item>
+      </property>
+     </properties>
+    </object>
+  <object id="12" name="CHEST" type="GameEvent" x="224" y="144" width="16" height="16">
+   <properties>
+    <property name="Pages" type="list">
+     <item type="class" propertytype="EventPage">
+      <properties>
+       <property name="commands" type="list">
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="switch" value="A"/>
+          <property name="type" value="CONTROL_SELF_SWITCH"/>
+          <property name="value" type="bool" value="true"/>
+         </properties>
+        </item>
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="text" value="You found a chest!\nIt's empty."/>
+          <property name="type" value="SHOW_TEXT"/>
+         </properties>
+        </item>
+       </property>
+       <property name="isWalkable" type="bool" value="false"/>
+       <property name="spriteFrame" type="int" value="1"/>
+       <property name="spriteName" value="CHEST"/>
+       <property name="trigger" value="ACTION_BUTTON"/>
+      </properties>
+     </item>
+     <item type="class" propertytype="EventPage">
+      <properties>
+       <property name="commands" type="list">
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="text" value="The chest is empty."/>
+          <property name="type" value="SHOW_TEXT"/>
+         </properties>
+        </item>
+       </property>
+       <property name="isWalkable" type="bool" value="false"/>
+       <property name="selfSwitchCondition" value="A"/>
+       <property name="spriteFrame" type="int" value="2"/>
+       <property name="spriteName" value="CHEST"/>
+       <property name="trigger" value="ACTION_BUTTON"/>
+      </properties>
+     </item>
+    </property>
    </properties>
   </object>
- </objectgroup>
+  <object id="13" name="NPC_TEST" type="GameEvent" x="256" y="160" width="16" height="16">
+   <properties>
+    <property name="Pages" type="list">
+     <item type="class" propertytype="EventPage">
+      <properties>
+       <property name="commands" type="list">
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="op" value="ADD"/>
+          <property name="type" value="CONTROL_SELF_VAR"/>
+          <property name="value" type="int" value="1"/>
+          <property name="varName" value="TALK_COUNT"/>
+         </properties>
+        </item>
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="text" value="Hello! I am walking in a circle!"/>
+          <property name="type" value="SHOW_TEXT"/>
+         </properties>
+        </item>
+       </property>
+       <property name="isWalkable" type="bool" value="false"/>
+       <property name="moveFrequency" type="int" value="20"/>
+       <property name="movePath" value="U,L,D,R"/>
+       <property name="moveSpeed" type="int" value="1"/>
+       <property name="moveType" value="PATH_FOLLOW"/>
+       <property name="spriteFrame" type="int" value="0"/>
+       <property name="spriteName" value="CHAR"/>
+       <property name="trigger" value="ACTION_BUTTON"/>
+      </properties>
+     </item>
+     <item type="class" propertytype="EventPage">
+      <properties>
+       <property name="commands" type="list">
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="op" value="ADD"/>
+          <property name="type" value="CONTROL_SELF_VAR"/>
+          <property name="value" type="int" value="1"/>
+          <property name="varName" value="TALK_COUNT"/>
+         </properties>
+        </item>
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="text" value="Nice speaking with you again! I'm still doing my laps."/>
+          <property name="type" value="SHOW_TEXT"/>
+         </properties>
+        </item>
+       </property>
+       <property name="isWalkable" type="bool" value="false"/>
+       <property name="moveFrequency" type="int" value="20"/>
+       <property name="movePath" value="U,L,D,R"/>
+       <property name="moveSpeed" type="int" value="1"/>
+       <property name="moveType" value="PATH_FOLLOW"/>
+       <property name="selfVariableCondition" value="TALK_COUNT"/>
+       <property name="spriteFrame" type="int" value="0"/>
+       <property name="spriteName" value="CHAR"/>
+       <property name="trigger" value="ACTION_BUTTON"/>
+       <property name="variableThreshold" type="int" value="1"/>
+      </properties>
+     </item>
+     <item type="class" propertytype="EventPage">
+      <properties>
+       <property name="commands" type="list">
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="op" value="ADD"/>
+          <property name="type" value="CONTROL_SELF_VAR"/>
+          <property name="value" type="int" value="1"/>
+          <property name="varName" value="TALK_COUNT"/>
+         </properties>
+        </item>
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="text" value="You've talked to me 3 times now! Enjoy watching me walk in circles!"/>
+          <property name="type" value="SHOW_TEXT"/>
+         </properties>
+        </item>
+       </property>
+       <property name="isWalkable" type="bool" value="false"/>
+       <property name="moveFrequency" type="int" value="20"/>
+       <property name="movePath" value="U,L,D,R"/>
+       <property name="moveSpeed" type="int" value="1"/>
+       <property name="moveType" value="PATH_FOLLOW"/>
+       <property name="selfVariableCondition" value="TALK_COUNT"/>
+       <property name="spriteFrame" type="int" value="0"/>
+       <property name="spriteName" value="CHAR"/>
+       <property name="trigger" value="ACTION_BUTTON"/>
+       <property name="variableThreshold" type="int" value="2"/>
+      </properties>
+      </item>
+     </property>
+    </properties>
+   </object>
+  </objectgroup>
  <layer id="4" name="OL1" width="32" height="32">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

@@ -1,6 +1,6 @@
+#include <algorithm>
 #include "Core/Player.h"
-
-Player::Player() {}
+#include "Utilities/InputManager.h"
 
 Player::~Player()
 {
@@ -23,34 +23,71 @@ bool Player::Load(const char *filename)
 	return spriteSheet != nullptr;
 }
 
-void Player::Update(bool isMoving, Direction dir)
+void Player::Update(bool isMovingVal, Direction dir)
 {
-	moving = isMoving;
+	isMoving = isMovingVal;
 	currentDir = dir;
+	UpdateAnimation();
+}
 
-	if (moving)
+void Player::ProcessMovementInput(int mapWidthPx, int mapHeightPx, const std::function<bool(int, int)> &isWalkable)
+{
+	isMoving = false;
+	int dx = 0;
+	int dy = 0;
+	int speed = WALK_SPEED;
+
+	if (InputManager::Instance().IsKeyDown(KEY_UP))
 	{
-		animTick++;
-		if (animTick >= 6)
+		dy = -speed;
+		currentDir = Direction::UP;
+	}
+	else if (InputManager::Instance().IsKeyDown(KEY_DOWN))
+	{
+		dy = speed;
+		currentDir = Direction::DOWN;
+	}
+
+	if (InputManager::Instance().IsKeyDown(KEY_LEFT))
+	{
+		dx = -speed;
+		currentDir = Direction::LEFT;
+	}
+	else if (InputManager::Instance().IsKeyDown(KEY_RIGHT))
+	{
+		dx = speed;
+		currentDir = Direction::RIGHT;
+	}
+
+	if (dx != 0)
+	{
+		int newX = std::clamp(mapX + dx, 0, mapWidthPx - CHARACTER_SPRITE_WIDTH);
+		if (isWalkable(newX, mapY))
 		{
-			currentFrame = (currentFrame + 1) % 4;
-			animTick = 0;
+			mapX = newX;
+			isMoving = true;
 		}
 	}
-	else
+
+	if (dy != 0)
 	{
-		currentFrame = 0;
-		animTick = 0;
+		int newY = std::clamp(mapY + dy, 0, mapHeightPx - CHARACTER_SPRITE_HEIGHT);
+		if (isWalkable(mapX, newY))
+		{
+			mapY = newY;
+			isMoving = true;
+		}
 	}
 }
 
-void Player::Draw(BITMAP *dest, int screenX, int screenY)
+int Player::GetSortY() const
 {
-	if (!spriteSheet)
-		return;
+	return mapY + CHARACTER_HITBOX_Y_OFFSET;
+}
 
-	int srcX = currentFrame * CHARACTER_SPRITE_WIDTH;
-	int srcY = static_cast<int>(currentDir) * CHARACTER_SPRITE_HEIGHT;
-
-	masked_blit(spriteSheet, dest, srcX, srcY, screenX, screenY, CHARACTER_SPRITE_WIDTH, CHARACTER_SPRITE_HEIGHT);
+void Player::Draw(BITMAP *dest, int scrollTileX, int scrollTileY) const
+{
+	int screenX = mapX - scrollTileX * TILE_SIZE;
+	int screenY = mapY - scrollTileY * TILE_SIZE;
+	DrawSprite(dest, spriteSheet, screenX, screenY);
 }
