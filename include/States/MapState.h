@@ -15,8 +15,11 @@
 #include "Core/DialogBox.h"
 #include "Utilities/InputManager.h"
 #include "Utilities/AudioManager.h"
+#include "Events/Event.h"
+#include "Core/IGameContext.h"
+#include "Core/RenderSystem.h"
 
-class MapState : public BaseState
+class MapState : public BaseState, public IGameContext
 {
 	public:
 		MapState() = default;
@@ -29,26 +32,28 @@ class MapState : public BaseState
 		void FrameRender(GameProcessor *game) override;
 		void UnloadResources() override;
 
+		void ShowText(const std::string &text) override;
+		void TransferPlayer(const std::string &mapName, int tileX, int tileY) override;
+		const std::string& GetCurrentMapName() const override { return currentMapName; }
+
 	private:
 		TileMap tileMap;
 		BITMAP *tileset = nullptr;
 		Player player;
-		Direction currentMoveDir = Direction::DOWN;		
 		int scrollX = 0;
 		int scrollY = 0;
-		int playerMapX = 0;
-		int playerMapY = 0;
 		int mapWidthPx = 0;
 		int mapHeightPx = 0;
 		int prevScrollTileX = -1;
 		int prevScrollTileY = -1;
 		bool tilemapChanged = false;
-		bool playerMoving = false;
 		DialogBox dialogBox;
 		std::string currentMapName;
-		std::unordered_map<std::string, BITMAP*> eventSprites;
+		uint16_t activeEventId = 0;
+		RenderSystem renderSystem;
 
 	private:
 		void MapTransition(const std::string &mapName, int targetTileX, int targetTileY);
 		bool CheckEventCollision(int targetX, int targetY);
+		bool IsWalkable(int targetMapX, int targetMapY);
 };

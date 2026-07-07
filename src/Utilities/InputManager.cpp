@@ -41,7 +41,11 @@ bool InputManager::IsKeyPressed(int keycode)
 		}
 	}
 	else
-		keyCooldown[keycode] = 0;
+	{
+		auto it = keyCooldown.find(keycode);
+		if (it != keyCooldown.end())
+			keyCooldown.erase(it);
+	}
 	
 	return false;
 }

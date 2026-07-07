@@ -8,6 +8,9 @@ StringDatabase::~StringDatabase()
 
 void StringDatabase::Load(const std::string &filePath)
 {
+	if (fileStream.is_open())
+		fileStream.close();
+
 	binaryFilePath = filePath;
 	fileStream.open(binaryFilePath, std::ios::binary);
 

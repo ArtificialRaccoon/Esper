@@ -40,3 +40,18 @@ void GameState::SetVariable(const std::string &key, int value)
 {
 	variables[key] = value;
 }
+
+int GameState::GetSelfVariable(const std::string &mapName, uint16_t eventId, const std::string &varName) const
+{
+	std::string key = mapName + "_" + std::to_string(eventId) + "_" + varName;
+	auto it = selfVariables.find(key);
+	if (it != selfVariables.end())
+		return it->second;
+	return 0;
+}
+
+void GameState::SetSelfVariable(const std::string &mapName, uint16_t eventId, const std::string &varName, int value)
+{
+	std::string key = mapName + "_" + std::to_string(eventId) + "_" + varName;
+	selfVariables[key] = value;
+}

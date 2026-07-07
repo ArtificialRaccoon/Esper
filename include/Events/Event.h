@@ -2,59 +2,48 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <memory>
 #include <allegro.h>
+#include "Core/IGameContext.h"
 #include "Core/GameDefines.h"
+#include "Events/EventPage.h"
+#include "Utilities/Collision.h"
+#include "Core/IRenderable.h"
 
-enum class EventTriggerType : uint8_t
-{
-	ACTION_BUTTON,
-	PLAYER_TOUCH,
-	AUTORUN,
-	NONE
-};
+class TileMap;
 
-struct __attribute__((packed)) EventPage
-{
-	EventTriggerType trigger = EventTriggerType::NONE;
-	uint8_t spriteFrame = 0;
-	uint8_t isWalkable = 1;
-	int16_t variableThreshold = 0;
-	char switchCondition[24] = { 0 };
-	char variableCondition[24] = { 0 };
-	char selfSwitchCondition[8] = { 0 };
-	char spriteName[8] = { 0 };
-	char command[64] = { 0 };
-};
-
-struct __attribute__((packed)) GameEvent
-{
-	uint16_t eventId;
-	int16_t tileX;
-	int16_t tileY;
-	int16_t endTileX;
-	int16_t endTileY;
-	uint16_t pageCount;
-};
-
-class Event
+class Event : public IRenderable
 {
 	public:
 		Event() = default;
 		Event(uint16_t id, int tileX, int tileY, int endTileX = -1, int endTileY = -1);
-		~Event() = default;
+		virtual ~Event() override = default;
+
 		uint16_t GetEventId() const { return eventId; }
-		int GetTileX() const { return tileX; }
-		int GetTileY() const { return tileY; }
-		int GetEndTileX() const { return endTileX; }
-		int GetEndTileY() const { return endTileY; }
-		int GetMapX() const { return tileX * TILE_SIZE; }
-		int GetMapY() const { return tileY * TILE_SIZE; }
+		virtual int GetTileX() const { return tileX; }
+		virtual int GetTileY() const { return tileY; }
+		virtual int GetEndTileX() const = 0;
+		virtual int GetEndTileY() const = 0;
+		virtual int GetMapX() const = 0;
+		virtual int GetMapY() const = 0;
+
 		void AddPage(const EventPage& page) { pages.push_back(page); }
 		void UpdateActivePage(const std::string &mapName);
 		const EventPage* GetActivePage() const;
 		const std::vector<EventPage>& GetPages() const { return pages; }
 
-	private:
+		virtual Rect GetHitbox() const = 0;
+		virtual bool CollidesWith(const Rect &playerRect) const = 0;
+
+		void ExecutePageCommands(const EventPage *page, IGameContext &context);
+
+	public:
+		int GetSortY() const override { return GetMapY(); }
+		void Draw(BITMAP *dest, int scrollTileX, int scrollTileY) const override = 0;
+
+	protected:
+		virtual void OnPageChanged(bool wasActor) {}
+
 		uint16_t eventId = 0;
 		int tileX = 0;
 		int tileY = 0;

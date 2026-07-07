@@ -16,7 +16,22 @@
             "id": 3,
             "members": [
                 {
+                    "name": "incSelfVar",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "incVar",
+                    "type": "string",
+                    "value": ""
+                },
+                {
                     "name": "mapName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "op",
                     "type": "string",
                     "value": ""
                 },
@@ -27,6 +42,11 @@
                 },
                 {
                     "name": "sfxName",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "switch",
                     "type": "string",
                     "value": ""
                 },
@@ -47,6 +67,16 @@
                 },
                 {
                     "name": "type",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "value",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "varName",
                     "type": "string",
                     "value": ""
                 }
@@ -71,19 +101,49 @@
             "id": 1,
             "members": [
                 {
-                    "name": "command",
-                    "propertyType": "EventCommand",
-                    "type": "class",
-                    "value": {
-                    }
+                    "name": "commands",
+                    "type": "list",
+                    "value": [
+                        {
+                            "propertyType": "EventCommand",
+                            "type": "class",
+                            "value": {
+                            }
+                        }
+                    ]
                 },
                 {
                     "name": "isWalkable",
                     "type": "bool",
-                    "value": false
+                    "value": true
+                },
+                {
+                    "name": "moveFrequency",
+                    "type": "int",
+                    "value": 30
+                },
+                {
+                    "name": "movePath",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "moveSpeed",
+                    "type": "int",
+                    "value": 1
+                },
+                {
+                    "name": "moveType",
+                    "type": "string",
+                    "value": "FIXED"
                 },
                 {
                     "name": "selfSwitchCondition",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "selfVariableCondition",
                     "type": "string",
                     "value": ""
                 },
@@ -99,8 +159,8 @@
                 },
                 {
                     "name": "switchCondition",
-                    "type": "int",
-                    "value": 0
+                    "type": "string",
+                    "value": ""
                 },
                 {
                     "name": "trigger",
@@ -109,8 +169,8 @@
                 },
                 {
                     "name": "variableCondition",
-                    "type": "int",
-                    "value": 0
+                    "type": "string",
+                    "value": ""
                 },
                 {
                     "name": "variableThreshold",

@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstring>
 #include <utility>
+#include <memory>
 #include <allegro.h>
 #include "Core/GameDefines.h"
 #include "Core/TileAnimation.h"
@@ -34,22 +35,22 @@ class TileMap
 		bool Update();
 		int GetCollisionWidth() const { return collisionWidth; }
 		int GetCollisionHeight() const { return collisionHeight; }
-		std::vector<Event>& GetEvents() { return events; }
+		const std::vector<std::unique_ptr<Event>>& GetEvents() const { return events; }
+		std::vector<std::unique_ptr<Event>>& GetEvents() { return events; }
 		const std::vector<TileMapLayer>& GetLayers() const { return layers; }
 		const std::vector<TileAnimation>& GetTileAnimations() const { return tileAnimations; }		
 		const std::vector<bool>& GetCollisionData() const { return collisionData; }		
 
 	private:		
-		void DrawLayer(BITMAP *dest, BITMAP *tileset, const TileMapLayer &layer, int scrollTileX, int scrollTileY, bool clearBackground) const;		
+		void DrawLayer(BITMAP *dest, BITMAP *tileset, const TileMapLayer &layer, int scrollTileX, int scrollTileY) const;		
 		void ReadBytes(std::istream &is, void *dest, int size);
-		void TrimTrailingSpaces(char *str);
 		bool IsUpperLayer(const TileMapLayer &layer) const;
 		int GetAnimatedTileId(int tileId) const;
 
 	private:
 		std::vector<bool> collisionData;
 		std::vector<int> tileAnimationLookup;					
-		std::vector<Event> events;
+		std::vector<std::unique_ptr<Event>> events;
 		std::vector<TileMapLayer> layers;
 		std::vector<TileAnimation> tileAnimations;
 		int collisionWidth = 0;

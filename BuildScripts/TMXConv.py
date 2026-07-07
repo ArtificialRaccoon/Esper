@@ -79,6 +79,12 @@ def convert(tmx_path: Path, out_path: Path) -> None:
         "NONE": 3,
     }
 
+    MOVE_TYPE_MAP = {
+        "FIXED": 0,
+        "RANDOM_WANDER": 1,
+        "PATH_FOLLOW": 2,
+    }
+
     import json
     strings_json_path = Path(__file__).parent.parent / "assets" / "STRINGS.json"
     string_map = {}
@@ -150,43 +156,73 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                 is_walkable = int(page.get("isWalkable", 1))
                 var_threshold = int(page.get("variableThreshold", 0))
                 
+                move_type_str = page.get("moveType", "FIXED")
+                move_type_val = MOVE_TYPE_MAP.get(move_type_str, 0)
+                move_speed = int(page.get("moveSpeed", 1))
+                move_frequency = int(page.get("moveFrequency", 30))
+                
                 def clean_cond(val):
                     if val is None or val == 0 or val == "0" or val == "":
                         return ""
                     return str(val)
 
+                move_path_bytes = clean_cond(page.get("movePath", "")).encode("ascii", errors="replace")[:15].ljust(16, b"\0")
                 switch_cond_bytes = clean_cond(page.get("switchCondition", "")).encode("ascii", errors="replace")[:23].ljust(24, b"\0")
                 var_cond_bytes = clean_cond(page.get("variableCondition", "")).encode("ascii", errors="replace")[:23].ljust(24, b"\0")
+                self_var_cond_bytes = clean_cond(page.get("selfVariableCondition", "")).encode("ascii", errors="replace")[:23].ljust(24, b"\0")
                 self_switch_cond_bytes = clean_cond(page.get("selfSwitchCondition", "")).encode("ascii", errors="replace")[:7].ljust(8, b"\0")
                 sprite_name_bytes = clean_cond(page.get("spriteName", "")).encode("ascii", errors="replace")[:7].ljust(8, b"\0")
                 
-                cmd_prop = page.get("command", "")
-                if isinstance(cmd_prop, dict):
-                    cmd_type = cmd_prop.get("type", "NONE")
-                    if cmd_type == "TRANSFER":
-                        map_name = cmd_prop.get("mapName", "")
-                        tx = cmd_prop.get("tileX", 0)
-                        ty = cmd_prop.get("tiley", cmd_prop.get("tileY", 0))
-                        cmd_str = f"transfer {map_name} {tx} {ty}"
-                    elif cmd_type == "PLAY_SFX":
-                        sfx_name = cmd_prop.get("sfxName", "")
-                        cmd_str = f"play_sfx {sfx_name}"
-                    elif cmd_type == "SHOW_TEXT":
-                        text = cmd_prop.get("text", "")
-                        string_idx = string_map.get(text, -1)
-                        cmd_str = f"show_text {string_idx}"
-                    elif cmd_type == "OPEN_CHEST":
-                        self_switch = cmd_prop.get("selfSwitch", "A")
-                        text = cmd_prop.get("text", "")
-                        string_idx = string_map.get(text, -1)
-                        cmd_str = f"open_chest {self_switch} {string_idx}"
-                    else:
-                        cmd_str = "none"
-                else:
-                    cmd_str = str(cmd_prop) if cmd_prop is not None else ""
+                parsed_cmds = []
+                cmd_list = page.get("commands", [])
+                if not isinstance(cmd_list, list):
+                    cmd_list = []
+                single_cmd = page.get("command", None)
+                if isinstance(single_cmd, dict):
+                    cmd_list.append(single_cmd)
+
+                for cmd_prop in cmd_list:
+                    if isinstance(cmd_prop, dict):
+                        cmd_type = cmd_prop.get("type", "NONE")
+                        if cmd_type == "SHOW_TEXT":
+                            text = cmd_prop.get("text", "")
+                            string_idx = string_map.get(text, -1)
+                            if (inc_self_var := cmd_prop.get("incSelfVar", "")):
+                                parsed_cmds.append((3, 1, 1, 0, inc_self_var))
+                            elif (self_switch := cmd_prop.get("selfSwitch", "")):
+                                parsed_cmds.append((2, 1, 0, 0, self_switch))
+                            elif (inc_var := cmd_prop.get("incVar", "")):
+                                parsed_cmds.append((4, 1, 1, 0, inc_var))
+                            parsed_cmds.append((1, 0, string_idx, 0, ""))
+                        elif cmd_type == "CONTROL_SELF_SWITCH":
+                            sw = cmd_prop.get("switch", "A")
+                            val = 1 if cmd_prop.get("value", True) else 0
+                            parsed_cmds.append((2, val, 0, 0, sw))
+                        elif cmd_type == "CONTROL_SELF_VAR":
+                            var_name = cmd_prop.get("varName", "")
+                            op_val = 1 if cmd_prop.get("op", "ADD") == "ADD" else 0
+                            val = cmd_prop.get("value", 1)
+                            parsed_cmds.append((3, op_val, val, 0, var_name))
+                        elif cmd_type == "CONTROL_VAR":
+                            var_name = cmd_prop.get("varName", "")
+                            op_val = 1 if cmd_prop.get("op", "ADD") == "ADD" else 0
+                            val = cmd_prop.get("value", 1)
+                            parsed_cmds.append((4, op_val, val, 0, var_name))
+                        elif cmd_type == "PLAY_SFX":
+                            sfx = cmd_prop.get("sfxName", "")
+                            parsed_cmds.append((5, 0, 0, 0, sfx))
+                        elif cmd_type == "TRANSFER" or cmd_type == "TRANSFER_PLAYER":
+                            m_name = cmd_prop.get("mapName", "")
+                            tx = cmd_prop.get("tileX", 0)
+                            ty = cmd_prop.get("tiley", cmd_prop.get("tileY", 0))
+                            parsed_cmds.append((6, 0, tx, ty, m_name))
                 
-                cmd_bytes = cmd_str.encode("ascii", errors="replace")[:63].ljust(64, b"\0")                                
-                fout.write(struct.pack("<BBBh24s24s8s8s64s", trigger_val, graphic_frame, is_walkable, var_threshold, switch_cond_bytes, var_cond_bytes, self_switch_cond_bytes, sprite_name_bytes, cmd_bytes))
+                command_count = len(parsed_cmds)
+                fout.write(struct.pack("<BBBhBBB16s24s24s24s8s8sH", trigger_val, graphic_frame, is_walkable, var_threshold, move_type_val, move_speed, move_frequency, move_path_bytes, switch_cond_bytes, var_cond_bytes, self_var_cond_bytes, self_switch_cond_bytes, sprite_name_bytes, command_count))
+
+                for c_type, c_op, c_val, c_extra, c_str in parsed_cmds:
+                    str_bytes = c_str.encode("ascii", errors="replace")[:23].ljust(24, b"\0")
+                    fout.write(struct.pack("<BBhh24s2x", c_type, c_op, c_val, c_extra, str_bytes))
 
     print(f"Layers: {len(tile_layers)}, Animations: {len(animations)}, Events: {len(events)} -> {out_path}")
 

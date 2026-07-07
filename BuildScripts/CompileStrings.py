@@ -55,17 +55,19 @@ def main():
                 props = parse_properties(obj)
                 pages = props.get("Pages", [])
                 for page in pages:
-                    cmd_prop = page.get("command", "")
-                    if isinstance(cmd_prop, dict):
-                        cmd_type = cmd_prop.get("type", "NONE")
-                        if cmd_type == "SHOW_TEXT":
-                            text = cmd_prop.get("text", "")
-                            if text:
-                                strings.add(text)
-                        elif cmd_type == "OPEN_CHEST":
-                            text = cmd_prop.get("text", "")
-                            if text:
-                                strings.add(text)
+                    cmd_list = page.get("commands", [])
+                    if not isinstance(cmd_list, list):
+                        cmd_list = []
+                    single_cmd = page.get("command", None)
+                    if isinstance(single_cmd, dict):
+                        cmd_list.append(single_cmd)
+                    for cmd_prop in cmd_list:
+                        if isinstance(cmd_prop, dict):
+                            cmd_type = cmd_prop.get("type", "NONE")
+                            if cmd_type == "SHOW_TEXT":
+                                text = cmd_prop.get("text", "")
+                                if text:
+                                    strings.add(text)
 
     sorted_strings = sorted(list(strings))
     string_count = len(sorted_strings)

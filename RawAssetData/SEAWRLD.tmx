@@ -83,17 +83,19 @@
     <property name="Pages" type="list">
      <item type="class" propertytype="EventPage">
       <properties>
-       <property name="command" type="class" propertytype="EventCommand">
-        <properties>
-         <property name="mapName" value="OVERWRLD"/>
-         <property name="tileX" type="int" value="1"/>
-         <property name="tiley" type="int" value="7"/>
-         <property name="type" value="TRANSFER"/>
-        </properties>
+       <property name="commands" type="list">
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="mapName" value="OVERWRLD"/>
+          <property name="tileX" type="int" value="1"/>
+          <property name="tiley" type="int" value="7"/>
+          <property name="type" value="TRANSFER"/>
+         </properties>
+        </item>
        </property>
-       <property name="switchCondition" type="int" value="0"/>
+       <property name="switchCondition" value=""/>
        <property name="trigger" value="PLAYER_TOUCH"/>
-       <property name="variableCondition" type="int" value="0"/>
+       <property name="variableCondition" value=""/>
        <property name="variableThreshold" type="int" value="0"/>
       </properties>
      </item>

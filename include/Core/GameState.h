@@ -18,6 +18,8 @@ class GameState
 		void SetSelfSwitch(const std::string &mapName, uint16_t eventId, const std::string &switchName, bool value);
 		int GetVariable(const std::string &key) const;
 		void SetVariable(const std::string &key, int value);
+		int GetSelfVariable(const std::string &mapName, uint16_t eventId, const std::string &varName) const;
+		void SetSelfVariable(const std::string &mapName, uint16_t eventId, const std::string &varName, int value);
 
 	private:
 		GameState() = default;
@@ -25,4 +27,5 @@ class GameState
 		std::unordered_map<std::string, bool> switches;
 		std::unordered_map<std::string, bool> selfSwitches;
 		std::unordered_map<std::string, int> variables;
+		std::unordered_map<std::string, int> selfVariables;
 };
