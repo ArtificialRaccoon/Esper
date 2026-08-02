@@ -24,7 +24,7 @@ class MapState : public BaseState, public IGameContext
 	public:
 		MapState() = default;
 		~MapState() override { UnloadResources(); }
-		void InitState() override;
+		void InitState(GameProcessor *game) override;
 		void Pause() override { }
 		void Resume() override { set_palette(CommonGUI::Instance().GetPalette()); }
 		void AcquireInput(GameProcessor *game) override;

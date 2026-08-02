@@ -7,9 +7,9 @@
 #include "Utilities/Collision.h"
 #include "Events/ActorEvent.h"
 
-void MapState::InitState()
+void MapState::InitState(GameProcessor *game)
 {
-	BaseState::InitState();
+	BaseState::InitState(game);
 	BUFFER = create_bitmap(VSCREEN_W, VSCREEN_H);
 	PALETTE pal;
 	tileset = load_bitmap(".\\TILESETS\\SHEET.bmp", pal);
@@ -203,5 +203,19 @@ void MapState::ShowText(const std::string &text)
 
 void MapState::TransferPlayer(const std::string &mapName, int tileX, int tileY)
 {
+	if (gameRef)
+		gameRef->FadeOut(16);
+
 	MapTransition(mapName, tileX, tileY);
+
+	PALETTE blackPal;
+	memset(blackPal, 0, sizeof(PALETTE));
+	set_palette(blackPal);
+
+	if (gameRef)
+	{
+		FrameRender(gameRef);
+		gameRef->FlipPages();
+		gameRef->FadeIn(16);
+	}
 }

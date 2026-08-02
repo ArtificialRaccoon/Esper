@@ -36,9 +36,8 @@ class GameProcessor
 		BITMAP *GetBackBuffer() { return videoPages[activePage ^ 1]; }
 		void FlipPages();
 
-		//Need to port the fade in/out code from the dungeon crawler
-		bool ShouldFadeIn() const { return shouldFadeIn; }
-		void SetShouldFadeIn(bool value) { shouldFadeIn = value; }
+		void FadeOut(int speed);
+		void FadeIn(int speed);
 		void SetScrollOffset(int x, int y) { scrollX = x; scrollY = y; }
 
   	private:

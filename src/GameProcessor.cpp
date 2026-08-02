@@ -1,4 +1,6 @@
 #include "GameProcessor.h"
+#include "Core/CommonGUI.h"
+
 
 void GameProcessor::InitializeGame()
 {
@@ -99,7 +101,7 @@ void GameProcessor::ChangeState(std::unique_ptr<BaseState> newState)
 	if (currentState)
 		currentState->UnloadResources();
 	currentState = std::move(newState);
-	currentState->InitState();
+	currentState->InitState(this);
 }
 
 void GameProcessor::PushState(std::unique_ptr<BaseState> newState)
@@ -107,7 +109,7 @@ void GameProcessor::PushState(std::unique_ptr<BaseState> newState)
 	currentState->Pause();
 	stateStack.push_back(std::move(currentState));
 	currentState = std::move(newState);
-	currentState->InitState();
+	currentState->InitState(this);
 }
 
 void GameProcessor::PopState()
@@ -135,4 +137,50 @@ void GameProcessor::FlipPages()
 {
 	activePage ^= 1;
 	scroll_screen(videoPages[activePage]->x_ofs + scrollX, videoPages[activePage]->y_ofs + scrollY);
+}
+
+extern volatile int ticks;
+
+void GameProcessor::FadeOut(int speed)
+{
+	PALETTE currentPal;
+	memcpy(currentPal, CommonGUI::Instance().GetPalette(), sizeof(PALETTE));
+
+	PALETTE blackPal;
+	memset(blackPal, 0, sizeof(PALETTE));
+
+	set_palette(currentPal);
+
+	for (int step = 0; step <= 64; step += speed)
+	{
+		PALETTE tempPal;
+		fade_interpolate(currentPal, blackPal, tempPal, step, 0, 255);
+		set_palette(tempPal);
+		Render();
+		rest(10);
+	}
+	set_palette(blackPal);
+	ticks = 0;
+}
+
+void GameProcessor::FadeIn(int speed)
+{
+	PALETTE targetPal;
+	memcpy(targetPal, CommonGUI::Instance().GetPalette(), sizeof(PALETTE));
+
+	PALETTE blackPal;
+	memset(blackPal, 0, sizeof(PALETTE));
+
+	set_palette(blackPal);
+
+	for (int step = 0; step <= 64; step += speed)
+	{
+		PALETTE tempPal;
+		fade_interpolate(blackPal, targetPal, tempPal, step, 0, 255);
+		set_palette(tempPal);
+		Render();
+		rest(10);
+	}
+	set_palette(targetPal);
+	ticks = 0;
 }

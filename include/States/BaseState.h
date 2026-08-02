@@ -8,7 +8,7 @@ class BaseState
 {
 	public:
 		virtual ~BaseState();
-		virtual void InitState();
+		virtual void InitState(GameProcessor *game);
 		virtual void Pause() = 0;
 		virtual void Resume() = 0;
 		virtual void AcquireInput(GameProcessor *game) = 0;
@@ -24,4 +24,5 @@ class BaseState
 		BaseState() {}
 		BITMAP *BUFFER = nullptr;
 		bool interactPressed = false;
+		GameProcessor *gameRef = nullptr;
 };
