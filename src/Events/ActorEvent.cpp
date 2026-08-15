@@ -1,6 +1,7 @@
 #include "Events/ActorEvent.h"
 #include "Events/EventPage.h"
 #include "Core/TileMap.h"
+#include "Core/Player.h"
 #include "Core/TextureCache.h"
 #include "Utilities/Collision.h"
 #include "Utilities/StringUtils.h"
@@ -8,7 +9,7 @@
 #include <cstdlib>
 
 ActorEvent::ActorEvent(uint16_t id, int tileX, int tileY)
-	: Event(id, tileX, tileY)
+	: Event(id)
 	, Actor()
 {
 	mapX = tileX * TILE_SIZE;
@@ -27,7 +28,7 @@ int ActorEvent::GetEndTileY() const
 	return GetTileY();
 }
 
-void ActorEvent::OnPageChanged(bool wasActor)
+void ActorEvent::OnPageChanged()
 {
 	const EventPage* activePage = GetActivePage();
 	if (activePage && activePage->GetSpriteFrame() == 0 && !activePage->GetSpriteName().empty())
@@ -38,18 +39,6 @@ void ActorEvent::OnPageChanged(bool wasActor)
 		movePath = StringUtils::ParseMovePath(activePage->GetMovePath());
 		if (!movePath.empty() && pathIndex >= movePath.size())
 			pathIndex = 0;
-
-		if (!wasActor)
-		{
-			targetTileX = GetTileX();
-			targetTileY = GetTileY();
-			waitTicks = moveFrequency;
-			pathIndex = 0;
-			isMoving = false;
-			isFacingPlayerOverride = false;
-			currentFrame = 0;
-			animTick = 0;
-		}
 	}
 }
 
@@ -101,6 +90,14 @@ void ActorEvent::Update(const TileMap &tileMap, int playerMapX, int playerMapY, 
 	{
 		currentFrame = 0;
 		animTick = 0;
+		return;
+	}
+
+	if (HasActiveMoveRoute())
+	{
+		UpdateMoveRouteStep([this, &tileMap, playerMapX, playerMapY, &allEvents](int tx, int ty) {
+			return !CheckCollisionAt(tx, ty, tileMap, playerMapX, playerMapY, allEvents);
+		});
 		return;
 	}
 
@@ -175,7 +172,7 @@ void ActorEvent::Update(const TileMap &tileMap, int playerMapX, int playerMapY, 
 		isMoving = true;
 	}
 	else
-		waitTicks = std::max(10, moveFrequency / 2);
+		waitTicks = std::max(NPC_BLOCKED_RETRY_MIN_TICKS, moveFrequency / 2);
 }
 
 void ActorEvent::TurnToFacePlayer(int playerCenterX, int playerCenterY)
@@ -221,6 +218,18 @@ void ActorEvent::ReleasePlayerFacing()
 		if (!isMoving)
 			waitTicks = 0;
 	}
+}
+
+void ActorEvent::OnInteractionStart(const Player &player, IGameContext &context)
+{
+	int playerCenterX = player.GetMapX() + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH / 2;
+	int playerCenterY = player.GetMapY() + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT / 2;
+	TurnToFacePlayer(playerCenterX, playerCenterY);
+}
+
+void ActorEvent::OnInteractionEnd()
+{
+	ReleasePlayerFacing();
 }
 
 Rect ActorEvent::GetHitbox() const

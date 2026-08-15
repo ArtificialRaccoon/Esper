@@ -5,7 +5,11 @@
 #include "Core/GameDefines.h"
 
 TriggerEvent::TriggerEvent(uint16_t id, int tileX, int tileY, int endTileX, int endTileY)
-	: Event(id, tileX, tileY, endTileX, endTileY)
+	: Event(id)
+	, tileX(tileX)
+	, tileY(tileY)
+	, endTileX(endTileX == -1 ? tileX : endTileX)
+	, endTileY(endTileY == -1 ? tileY : endTileY)
 {
 }
 

@@ -14,12 +14,19 @@
 #include "States/BaseState.h"
 #include "Utilities/InputManager.h"
 
+enum class FadeDirection
+{
+	NONE,
+	FADE_OUT,
+	FADE_IN
+};
+
 class BaseState;
 class GameProcessor
 {
-  	public:
+	public:
 		void InitializeGame();
-		void HandleEvents() { currentState->ProcessInput(this); }
+		void HandleEvents();
 		void ProcessEvents();
 		void Update() {}
 		void Render();
@@ -38,17 +45,22 @@ class GameProcessor
 
 		void FadeOut(int speed);
 		void FadeIn(int speed);
+		bool IsFading() const { return isFading; }
+		void UpdateFade();
 		void SetScrollOffset(int x, int y) { scrollX = x; scrollY = y; }
 
-  	private:
+	private:
 		bool isRunning = true;
-		bool shouldFadeIn = false;		
+		bool isFading = false;
+		int fadeStep = 0;
+		int fadeSpeed = DEFAULT_FADE_SPEED;
+		FadeDirection fadeDirection = FadeDirection::NONE;
+		PALETTE sourcePal;
+		PALETTE targetPal;
 		int activePage = 0;
 		int scrollX = 0;
 		int scrollY = 0;
-		int fadeDirection = 1;
-		float deltaFade = 0;	
-		BITMAP *videoPages[2] = {nullptr, nullptr};	
+		BITMAP *videoPages[2] = {nullptr, nullptr};
 		std::unique_ptr<BaseState> currentState;
 		std::vector<std::unique_ptr<BaseState>> stateStack;
 		std::unordered_map<std::string, std::function<std::unique_ptr<BaseState>()>> stateRegistry;

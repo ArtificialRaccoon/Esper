@@ -95,6 +95,15 @@ def convert(tmx_path: Path, out_path: Path) -> None:
         except Exception as e:
             print(f"Warning: Failed to parse {strings_json_path}: {e}")
     
+    paths_json_path = Path(__file__).parent.parent / "assets" / "PATHS.json"
+    path_map = {}
+    if paths_json_path.is_file():
+        try:
+            with open(paths_json_path, "r", encoding="utf-8") as f:
+                path_map = json.load(f)
+        except Exception as e:
+            print(f"Warning: Failed to parse {paths_json_path}: {e}")
+    
     events = []
     if (events_group := tmx_root.find(".//objectgroup[@name='EVENTS']")) is not None:
         for obj in events_group.findall("object"):
@@ -112,8 +121,26 @@ def convert(tmx_path: Path, out_path: Path) -> None:
             props = parse_properties(obj)
             pages = props.get("Pages", [])
             
+            obj_type = (obj.get("type") or obj.get("class") or "").strip().upper()
+            is_actor = False
+            if obj_type in ("NPC", "ACTOR"):
+                is_actor = True
+            elif props.get("isActor") is True or str(props.get("eventType", "")).strip().upper() == "ACTOR":
+                is_actor = True
+            else:
+                for page in pages:
+                    sname = str(page.get("spriteName", "")).strip()
+                    sframe = int(page.get("spriteFrame", 0))
+                    mtype = str(page.get("moveType", "FIXED")).strip().upper()
+                    if (sname and sframe == 0) or mtype != "FIXED":
+                        is_actor = True
+                        break
+            
+            event_type = 1 if is_actor else 0
+
             events.append({
                 "eventId": event_id,
+                "eventType": event_type,
                 "tileX": tile_x,
                 "tileY": tile_y,
                 "endTileX": end_tile_x,
@@ -147,7 +174,7 @@ def convert(tmx_path: Path, out_path: Path) -> None:
             fout.write(encode_name(name) + struct.pack(f"<2H{len(data)}H", width, height, *data))
 
         for event in events:    
-            fout.write(struct.pack("<HhhhhH", event["eventId"], event["tileX"], event["tileY"], event["endTileX"], event["endTileY"], len(event["pages"])))
+            fout.write(struct.pack("<HBhhhhH", event["eventId"], event["eventType"], event["tileX"], event["tileY"], event["endTileX"], event["endTileY"], len(event["pages"])))
             
             for page in event["pages"]:
                 trigger_str = page.get("trigger", "NONE")
@@ -162,9 +189,12 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                 move_frequency = int(page.get("moveFrequency", 30))
                 
                 def clean_cond(val):
-                    if val is None or val == 0 or val == "0" or val == "":
+                    if val is None:
                         return ""
-                    return str(val)
+                    s = str(val).strip()
+                    if s == "0" or s == "":
+                        return ""
+                    return s
 
                 move_path_bytes = clean_cond(page.get("movePath", "")).encode("ascii", errors="replace")[:15].ljust(16, b"\0")
                 switch_cond_bytes = clean_cond(page.get("switchCondition", "")).encode("ascii", errors="replace")[:23].ljust(24, b"\0")
@@ -216,6 +246,39 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                             tx = cmd_prop.get("tileX", 0)
                             ty = cmd_prop.get("tiley", cmd_prop.get("tileY", 0))
                             parsed_cmds.append((6, 0, tx, ty, m_name))
+                        elif cmd_type == "SET_MOVE_ROUTE":
+                            target_id = int(cmd_prop.get("targetId", 0))
+                            bypass_col = 1 if cmd_prop.get("bypassCollision", False) else 0
+                            path_str = cmd_prop.get("movePath", "")
+                            path_id = path_map.get(path_str, -1)
+                            if path_id == -1 and path_str:
+                                print(f"Warning: Move path '{path_str}' not found in PATHS.json. Make sure to compile paths.")
+                            parsed_cmds.append((7, bypass_col, target_id, path_id, ""))
+                        elif cmd_type == "WAIT":
+                            frames = int(cmd_prop.get("frames", 60))
+                            parsed_cmds.append((8, 0, frames, 0, ""))
+                        elif cmd_type == "WAIT_FOR_MOVEMENT":
+                            target_id = int(cmd_prop.get("targetId", 0))
+                            parsed_cmds.append((9, 0, target_id, 0, ""))
+                        elif cmd_type == "FADE_OUT":
+                            speed = int(cmd_prop.get("speed", 2))
+                            parsed_cmds.append((10, 0, speed, 0, ""))
+                        elif cmd_type == "FADE_IN":
+                            speed = int(cmd_prop.get("speed", 2))
+                            parsed_cmds.append((11, 0, speed, 0, ""))
+                        elif cmd_type == "PLAY_BGM":
+                            bgm = cmd_prop.get("bgmName", "")
+                            parsed_cmds.append((12, 0, 0, 0, bgm))
+                        elif cmd_type == "SET_FACING":
+                            target_id = int(cmd_prop.get("targetId", 0))
+                            dir_str = str(cmd_prop.get("direction", "DOWN")).strip().upper()
+                            DIR_MAP = { "DOWN": 0, "RIGHT": 1, "UP": 2, "LEFT": 3 }
+                            dir_val = DIR_MAP.get(dir_str, 0)
+                            parsed_cmds.append((13, dir_val, target_id, 0, ""))
+                        elif cmd_type == "SET_SPEED":
+                            target_id = int(cmd_prop.get("targetId", 0))
+                            speed = int(cmd_prop.get("speed", 2))
+                            parsed_cmds.append((14, speed, target_id, 0, ""))
                 
                 command_count = len(parsed_cmds)
                 fout.write(struct.pack("<BBBhBBB16s24s24s24s8s8sH", trigger_val, graphic_frame, is_walkable, var_threshold, move_type_val, move_speed, move_frequency, move_path_bytes, switch_cond_bytes, var_cond_bytes, self_var_cond_bytes, self_switch_cond_bytes, sprite_name_bytes, command_count))

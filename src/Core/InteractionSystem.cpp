@@ -1,4 +1,3 @@
-#include <typeinfo>
 #include "Core/InteractionSystem.h"
 #include "Core/Player.h"
 #include "Core/TileMap.h"
@@ -7,7 +6,6 @@
 #include "Events/Event.h"
 #include "Events/EventPage.h"
 #include "Events/EventSerialization.h"
-#include "Events/ActorEvent.h"
 #include <algorithm>
 
 void InteractionSystem::ProcessAction(Player &player, TileMap &tileMap, const std::string &currentMapName, IGameContext &context, uint16_t &activeEventId)
@@ -86,13 +84,9 @@ void InteractionSystem::ProcessAction(Player &player, TileMap &tileMap, const st
 
 			if (isHit)
 			{
-				if (typeid(*event) == typeid(ActorEvent))
-				{
-					static_cast<ActorEvent*>(event.get())->TurnToFacePlayer(playerCenterX, playerCenterY);
-					activeEventId = event->GetEventId();
-				}
-
-				event->ExecutePageCommands(activePage, context);
+				event->OnInteractionStart(player, context);
+				activeEventId = event->GetEventId();
+				context.StartEventScript(activePage->GetCommands(), event->GetEventId());
 				break;
 			}
 		}
@@ -124,7 +118,7 @@ void InteractionSystem::ProcessTouch(Player &player, TileMap &tileMap, const std
 			{
 				if (player.IsMoving())
 				{
-					event->ExecutePageCommands(activePage, context);
+					context.StartEventScript(activePage->GetCommands(), event->GetEventId());
 					break;
 				}
 			}

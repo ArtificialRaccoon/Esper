@@ -1,5 +1,6 @@
 #include "GameProcessor.h"
 #include "Core/CommonGUI.h"
+#include "Core/PathDatabase.h"
 
 
 void GameProcessor::InitializeGame()
@@ -17,6 +18,7 @@ void GameProcessor::InitializeGame()
 	}
 
 	StringDatabase::Instance().Load(".\\STRINGS.BIN");
+	PathDatabase::Instance().Load(".\\PATHS.BIN");
 
 	set_color_depth(8);
 	if (set_gfx_mode(GFX_MODEX, SCREEN_WIDTH, SCREEN_HEIGHT, 352, 480) != 0)
@@ -139,48 +141,51 @@ void GameProcessor::FlipPages()
 	scroll_screen(videoPages[activePage]->x_ofs + scrollX, videoPages[activePage]->y_ofs + scrollY);
 }
 
-extern volatile int ticks;
+void GameProcessor::HandleEvents()
+{
+	UpdateFade();
+	if (currentState)
+		currentState->ProcessInput(this);
+}
 
 void GameProcessor::FadeOut(int speed)
 {
-	PALETTE currentPal;
-	memcpy(currentPal, CommonGUI::Instance().GetPalette(), sizeof(PALETTE));
-
-	PALETTE blackPal;
-	memset(blackPal, 0, sizeof(PALETTE));
-
-	set_palette(currentPal);
-
-	for (int step = 0; step <= 64; step += speed)
-	{
-		PALETTE tempPal;
-		fade_interpolate(currentPal, blackPal, tempPal, step, 0, 255);
-		set_palette(tempPal);
-		Render();
-		rest(10);
-	}
-	set_palette(blackPal);
-	ticks = 0;
+	memcpy(sourcePal, CommonGUI::Instance().GetPalette(), sizeof(PALETTE));
+	memset(targetPal, 0, sizeof(PALETTE));
+	fadeStep = 0;
+	fadeSpeed = (speed > 0) ? speed : DEFAULT_FADE_SPEED;
+	fadeDirection = FadeDirection::FADE_OUT;
+	isFading = true;
 }
 
 void GameProcessor::FadeIn(int speed)
 {
-	PALETTE targetPal;
+	memset(sourcePal, 0, sizeof(PALETTE));
 	memcpy(targetPal, CommonGUI::Instance().GetPalette(), sizeof(PALETTE));
+	set_palette(sourcePal);
+	fadeStep = 0;
+	fadeSpeed = (speed > 0) ? speed : DEFAULT_FADE_SPEED;
+	fadeDirection = FadeDirection::FADE_IN;
+	isFading = true;
+}
 
-	PALETTE blackPal;
-	memset(blackPal, 0, sizeof(PALETTE));
+void GameProcessor::UpdateFade()
+{
+	if (!isFading)
+		return;
 
-	set_palette(blackPal);
-
-	for (int step = 0; step <= 64; step += speed)
+	fadeStep += fadeSpeed;
+	if (fadeStep >= 64)
+	{
+		fadeStep = 64;
+		isFading = false;
+		set_palette(targetPal);
+		fadeDirection = FadeDirection::NONE;
+	}
+	else
 	{
 		PALETTE tempPal;
-		fade_interpolate(blackPal, targetPal, tempPal, step, 0, 255);
+		fade_interpolate(sourcePal, targetPal, tempPal, fadeStep, 0, 255);
 		set_palette(tempPal);
-		Render();
-		rest(10);
 	}
-	set_palette(targetPal);
-	ticks = 0;
 }

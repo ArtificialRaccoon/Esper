@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="13">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="32" height="32" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="15">
  <tileset firstgid="1" source="OVERWRLD.tsx"/>
  <layer id="1" name="BL1" width="32" height="32">
   <data encoding="csv">
@@ -122,27 +122,33 @@
     <property name="Pages" type="list">
      <item type="class" propertytype="EventPage">
       <properties>
-         <property name="commands" type="list">
-          <item type="class" propertytype="EventCommand">
-           <properties>
-            <property name="text">This is placeholder.
-Press Enter to dismiss.</property>
-            <property name="type" value="SHOW_TEXT"/>
-           </properties>
-          </item>
-         </property>
-         <property name="trigger" value="PLAYER_TOUCH"/>
-        </properties>
-       </item>
-      </property>
-     </properties>
-    </object>
-  <object id="12" name="CHEST" type="GameEvent" x="224" y="144" width="16" height="16">
-   <properties>
-    <property name="Pages" type="list">
-     <item type="class" propertytype="EventPage">
-      <properties>
        <property name="commands" type="list">
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="text" value="Starting cutscene test..."/>
+          <property name="type" value="SHOW_TEXT"/>
+         </properties>
+        </item>
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="bypassCollision" type="bool" value="false"/>
+          <property name="movePath" value="D,D,R,R"/>
+          <property name="targetId" type="int" value="0"/>
+          <property name="type" value="SET_MOVE_ROUTE"/>
+         </properties>
+        </item>
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="targetId" type="int" value="0"/>
+          <property name="type" value="WAIT_FOR_MOVEMENT"/>
+         </properties>
+        </item>
+        <item type="class" propertytype="EventCommand">
+         <properties>
+          <property name="text" value="Cutscene movement finished!"/>
+          <property name="type" value="SHOW_TEXT"/>
+         </properties>
+        </item>
         <item type="class" propertytype="EventCommand">
          <properties>
           <property name="switch" value="A"/>
@@ -150,13 +156,110 @@ Press Enter to dismiss.</property>
           <property name="value" type="bool" value="true"/>
          </properties>
         </item>
-        <item type="class" propertytype="EventCommand">
-         <properties>
-          <property name="text" value="You found a chest!\nIt's empty."/>
-          <property name="type" value="SHOW_TEXT"/>
-         </properties>
-        </item>
        </property>
+       <property name="trigger" value="AUTORUN"/>
+      </properties>
+     </item>
+     <item type="class" propertytype="EventPage">
+      <properties>
+       <property name="commands" type="list"/>
+       <property name="selfSwitchCondition" value="A"/>
+       <property name="trigger" value="NONE"/>
+      </properties>
+     </item>
+    </property>
+   </properties>
+  </object>
+  <object id="12" name="CHEST" type="GameEvent" x="224" y="144" width="16" height="16">
+   <properties>
+    <property name="Pages" type="list">
+     <item type="class" propertytype="EventPage">
+      <properties>
+        <property name="commands" type="list">
+         <item type="class" propertytype="EventCommand">
+          <properties>
+           <property name="op" value="SET"/>
+           <property name="type" value="CONTROL_VAR"/>
+           <property name="value" type="int" value="1"/>
+           <property name="varName" value="STRANGER_APPEAR"/>
+          </properties>
+         </item>
+         <item type="class" propertytype="EventCommand">
+          <properties>
+           <property name="switch" value="A"/>
+           <property name="type" value="CONTROL_SELF_SWITCH"/>
+           <property name="value" type="bool" value="true"/>
+          </properties>
+         </item>
+         <item type="class" propertytype="EventCommand">
+          <properties>
+           <property name="text" value="You found a chest!\nIt's empty."/>
+           <property name="type" value="SHOW_TEXT"/>
+          </properties>
+         </item>
+           <item type="class" propertytype="EventCommand">
+            <properties>
+             <property name="speed" type="int" value="1"/>
+             <property name="targetId" type="int" value="14"/>
+             <property name="type" value="SET_SPEED"/>
+            </properties>
+           </item>
+           <item type="class" propertytype="EventCommand">
+            <properties>
+             <property name="bypassCollision" type="bool" value="true"/>
+             <property name="movePath" value="R,R,R"/>
+             <property name="targetId" type="int" value="14"/>
+             <property name="type" value="SET_MOVE_ROUTE"/>
+            </properties>
+           </item>
+           <item type="class" propertytype="EventCommand">
+            <properties>
+             <property name="targetId" type="int" value="14"/>
+             <property name="type" value="WAIT_FOR_MOVEMENT"/>
+            </properties>
+           </item>
+           <item type="class" propertytype="EventCommand">
+            <properties>
+             <property name="text" value="Stranger: Hahaha! Too slow!\nThat treasure is mine!"/>
+             <property name="type" value="SHOW_TEXT"/>
+            </properties>
+           </item>
+           <item type="class" propertytype="EventCommand">
+            <properties>
+             <property name="speed" type="int" value="4"/>
+             <property name="targetId" type="int" value="14"/>
+             <property name="type" value="SET_SPEED"/>
+            </properties>
+           </item>
+           <item type="class" propertytype="EventCommand">
+            <properties>
+             <property name="bypassCollision" type="bool" value="true"/>
+             <property name="movePath" value="L,L,L"/>
+             <property name="targetId" type="int" value="14"/>
+             <property name="type" value="SET_MOVE_ROUTE"/>
+            </properties>
+           </item>
+           <item type="class" propertytype="EventCommand">
+            <properties>
+             <property name="targetId" type="int" value="14"/>
+             <property name="type" value="WAIT_FOR_MOVEMENT"/>
+            </properties>
+           </item>
+         <item type="class" propertytype="EventCommand">
+          <properties>
+           <property name="op" value="SET"/>
+           <property name="type" value="CONTROL_VAR"/>
+           <property name="value" type="int" value="0"/>
+           <property name="varName" value="STRANGER_APPEAR"/>
+          </properties>
+         </item>
+         <item type="class" propertytype="EventCommand">
+          <properties>
+           <property name="text" value="The stranger disappeared..."/>
+           <property name="type" value="SHOW_TEXT"/>
+          </properties>
+         </item>
+        </property>
        <property name="isWalkable" type="bool" value="false"/>
        <property name="spriteFrame" type="int" value="1"/>
        <property name="spriteName" value="CHEST"/>
@@ -277,6 +380,30 @@ Press Enter to dismiss.</property>
      </property>
     </properties>
    </object>
+    <object id="14" name="NPC_STRANGER" type="GameEvent" x="32" y="144" width="16" height="16">
+     <properties>
+      <property name="Pages" type="list">
+       <item type="class" propertytype="EventPage">
+        <properties>
+         <property name="commands" type="list"/>
+         <property name="isWalkable" type="bool" value="true"/>
+         <property name="trigger" value="NONE"/>
+        </properties>
+       </item>
+       <item type="class" propertytype="EventPage">
+        <properties>
+         <property name="commands" type="list"/>
+         <property name="isWalkable" type="bool" value="true"/>
+         <property name="spriteFrame" type="int" value="0"/>
+         <property name="spriteName" value="CHAR"/>
+         <property name="trigger" value="NONE"/>
+         <property name="variableCondition" value="STRANGER_APPEAR"/>
+         <property name="variableThreshold" type="int" value="1"/>
+        </properties>
+       </item>
+      </property>
+     </properties>
+    </object>
   </objectgroup>
  <layer id="4" name="OL1" width="32" height="32">
   <data encoding="csv">

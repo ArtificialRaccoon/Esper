@@ -28,7 +28,6 @@ class EventPage
 		const std::string& GetSpriteName() const { return spriteName; }
 		const std::vector<std::shared_ptr<IEventCommand>>& GetCommands() const { return commands; }
 		bool IsActive(const std::string &mapName, uint16_t eventId) const;
-		void Execute(Event &event, IGameContext &context) const;
 
 	private:
 		EventMoveType moveType = EventMoveType::FIXED;

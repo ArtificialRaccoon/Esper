@@ -1,11 +1,9 @@
-#include <typeinfo>
 #include "States/MapState.h"
 #include "Core/GameState.h"
 #include "Core/StringDatabase.h"
 #include "Core/InteractionSystem.h"
 #include "Core/TextureCache.h"
 #include "Utilities/Collision.h"
-#include "Events/ActorEvent.h"
 
 void MapState::InitState(GameProcessor *game)
 {
@@ -113,7 +111,7 @@ void MapState::AcquireInput(GameProcessor *game)
 	if (InputManager::Instance().IsKeyPressed(KEY_ENTER) || InputManager::Instance().IsKeyPressed(KEY_SPACE))
 		interactPressed = true;
 
-	if (dialogBox.IsActive())
+	if (IsFading() || dialogBox.IsActive() || interpreter.IsActive())
 		return;
 
 	player.ProcessMovementInput(mapWidthPx, mapHeightPx, [this](int x, int y) { return IsWalkable(x, y); });
@@ -123,32 +121,62 @@ void MapState::AcquireInput(GameProcessor *game)
 
 void MapState::ProcessInput(GameProcessor *game)
 {
+	for (auto &event : tileMap.GetEvents())
+	{
+		event->UpdateActivePage(currentMapName);
+	}
+
+	if (interpreter.IsActive())
+		interpreter.Update(*this);
+
+	if (IsFading())
+		return;
+
 	if (dialogBox.IsActive())
 	{
 		dialogBox.Update();
 		if (interactPressed)
 			dialogBox.Advance();
 
-		if (!dialogBox.IsActive())
+		if (!dialogBox.IsActive() && activeEventId != 0)
 		{
-			for (auto &event : tileMap.GetEvents())
-			{
-				if (typeid(*event) == typeid(ActorEvent))
-					static_cast<ActorEvent*>(event.get())->ReleasePlayerFacing();
-			}
+			if (Event *ev = GetEventById(activeEventId))
+				ev->OnInteractionEnd();
 			activeEventId = 0;
 		}
 		return;
 	}
 
-	if (interactPressed)
-		InteractionSystem::ProcessAction(player, tileMap, currentMapName, *this, activeEventId);
-	InteractionSystem::ProcessTouch(player, tileMap, currentMapName, *this);
+	if (!interpreter.IsActive() && !dialogBox.IsActive())
+	{
+		for (auto &event : tileMap.GetEvents())
+		{
+			const EventPage *activePage = event->GetActivePage();
+			if (activePage && activePage->GetTrigger() == EventTriggerType::AUTORUN)
+			{
+				interpreter.Start(activePage->GetCommands(), event->GetEventId(), *this);
+				break;
+			}
+		}
+	}
+
+	if (!interpreter.IsActive() && !dialogBox.IsActive())
+	{
+		if (interactPressed)
+			InteractionSystem::ProcessAction(player, tileMap, currentMapName, *this, activeEventId);
+		InteractionSystem::ProcessTouch(player, tileMap, currentMapName, *this);
+	}
 
 	for (auto &event : tileMap.GetEvents())
 	{
-		if (typeid(*event) == typeid(ActorEvent))
-			static_cast<ActorEvent*>(event.get())->Update(tileMap, player.GetMapX(), player.GetMapY(), tileMap.GetEvents(), dialogBox.IsActive());
+		event->Update(tileMap, player.GetMapX(), player.GetMapY(), tileMap.GetEvents(), dialogBox.IsActive());
+	}
+
+	if (player.HasActiveMoveRoute())
+	{
+		player.UpdateMoveRouteStep([this](int tx, int ty) {
+			return IsWalkable(tx * TILE_SIZE, ty * TILE_SIZE);
+		});
 	}
 
 	scrollX = std::clamp(player.GetMapX() - (SCREEN_WIDTH - CHARACTER_SPRITE_WIDTH) / 2, 0, std::max(0, mapWidthPx - SCREEN_WIDTH));
@@ -196,6 +224,58 @@ void MapState::UnloadResources()
 	TextureCache::Instance().Clear();
 }
 
+bool MapState::IsDialogActive() const
+{
+	return dialogBox.IsActive();
+}
+
+bool MapState::IsFading() const
+{
+	return gameRef ? gameRef->IsFading() : false;
+}
+
+Actor* MapState::GetActorById(int id)
+{
+	if (id == -1 || id == PLAYER_ACTOR_ID)
+		return &player;
+
+	for (auto &event : tileMap.GetEvents())
+	{
+		if (event->GetEventId() == id)
+			return event->AsActor();
+	}
+
+	return nullptr;
+}
+
+Event* MapState::GetEventById(int id)
+{
+	for (auto &event : tileMap.GetEvents())
+	{
+		if (event->GetEventId() == id)
+			return event.get();
+	}
+
+	return nullptr;
+}
+
+void MapState::PlayBGM(const std::string &bgmName)
+{
+	AudioManager::Instance().PlayMusic(bgmName);
+}
+
+void MapState::FadeOut(int speed)
+{
+	if (gameRef)
+		gameRef->FadeOut(speed);
+}
+
+void MapState::FadeIn(int speed)
+{
+	if (gameRef)
+		gameRef->FadeIn(speed);
+}
+
 void MapState::ShowText(const std::string &text)
 {
 	dialogBox.SetText(text);
@@ -203,9 +283,6 @@ void MapState::ShowText(const std::string &text)
 
 void MapState::TransferPlayer(const std::string &mapName, int tileX, int tileY)
 {
-	if (gameRef)
-		gameRef->FadeOut(16);
-
 	MapTransition(mapName, tileX, tileY);
 
 	PALETTE blackPal;
@@ -216,6 +293,11 @@ void MapState::TransferPlayer(const std::string &mapName, int tileX, int tileY)
 	{
 		FrameRender(gameRef);
 		gameRef->FlipPages();
-		gameRef->FadeIn(16);
+		gameRef->FadeIn(DEFAULT_FADE_SPEED);
 	}
+}
+
+void MapState::StartEventScript(const std::vector<std::shared_ptr<IEventCommand>> &commands, uint16_t eventId)
+{
+	interpreter.Start(commands, eventId, *this);
 }

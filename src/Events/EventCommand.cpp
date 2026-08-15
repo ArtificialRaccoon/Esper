@@ -3,7 +3,11 @@
 #include "Events/EventSerialization.h"
 #include "Core/GameState.h"
 #include "Core/StringDatabase.h"
+#include "Core/PathDatabase.h"
+#include "Core/Actor.h"
+#include "Core/IGameContext.h"
 #include "Utilities/AudioManager.h"
+#include "Utilities/StringUtils.h"
 
 // ShowTextCommand
 ShowTextCommand::ShowTextCommand(uint16_t stringId)
@@ -11,11 +15,11 @@ ShowTextCommand::ShowTextCommand(uint16_t stringId)
 {
 }
 
-bool ShowTextCommand::Execute(Event &event, IGameContext &context)
+CommandResult ShowTextCommand::Execute(ExecutionContext &ctx)
 {
 	std::string dialogText = StringDatabase::Instance().GetString(stringId);
-	context.ShowText(dialogText);
-	return false;
+	ctx.context.ShowText(dialogText);
+	return CommandResult::Yield();
 }
 
 // ControlSelfSwitchCommand
@@ -25,11 +29,13 @@ ControlSelfSwitchCommand::ControlSelfSwitchCommand(const std::string &selfSwitch
 {
 }
 
-bool ControlSelfSwitchCommand::Execute(Event &event, IGameContext &context)
+CommandResult ControlSelfSwitchCommand::Execute(ExecutionContext &ctx)
 {
-	GameState::Instance().SetSelfSwitch(context.GetCurrentMapName(), event.GetEventId(), selfSwitch, value);
-	event.UpdateActivePage(context.GetCurrentMapName());
-	return false;
+	uint16_t evId = ctx.event ? ctx.event->GetEventId() : ctx.triggeringEventId;
+	GameState::Instance().SetSelfSwitch(ctx.context.GetCurrentMapName(), evId, selfSwitch, value);
+	if (ctx.event)
+		ctx.event->UpdateActivePage(ctx.context.GetCurrentMapName());
+	return CommandResult::Continue();
 }
 
 // ControlSelfVarCommand
@@ -40,13 +46,15 @@ ControlSelfVarCommand::ControlSelfVarCommand(const std::string &selfVar, uint8_t
 {
 }
 
-bool ControlSelfVarCommand::Execute(Event &event, IGameContext &context)
+CommandResult ControlSelfVarCommand::Execute(ExecutionContext &ctx)
 {
-	int curVal = GameState::Instance().GetSelfVariable(context.GetCurrentMapName(), event.GetEventId(), selfVar);
+	uint16_t evId = ctx.event ? ctx.event->GetEventId() : ctx.triggeringEventId;
+	int curVal = GameState::Instance().GetSelfVariable(ctx.context.GetCurrentMapName(), evId, selfVar);
 	int newVal = (op == 1) ? (curVal + val) : val;
-	GameState::Instance().SetSelfVariable(context.GetCurrentMapName(), event.GetEventId(), selfVar, newVal);
-	event.UpdateActivePage(context.GetCurrentMapName());
-	return false;
+	GameState::Instance().SetSelfVariable(ctx.context.GetCurrentMapName(), evId, selfVar, newVal);
+	if (ctx.event)
+		ctx.event->UpdateActivePage(ctx.context.GetCurrentMapName());
+	return CommandResult::Continue();
 }
 
 // ControlVarCommand
@@ -57,13 +65,14 @@ ControlVarCommand::ControlVarCommand(const std::string &varName, uint8_t op, int
 {
 }
 
-bool ControlVarCommand::Execute(Event &event, IGameContext &context)
+CommandResult ControlVarCommand::Execute(ExecutionContext &ctx)
 {
 	int curVal = GameState::Instance().GetVariable(varName);
 	int newVal = (op == 1) ? (curVal + val) : val;
 	GameState::Instance().SetVariable(varName, newVal);
-	event.UpdateActivePage(context.GetCurrentMapName());
-	return false;
+	if (ctx.event)
+		ctx.event->UpdateActivePage(ctx.context.GetCurrentMapName());
+	return CommandResult::Continue();
 }
 
 // PlaySFXCommand
@@ -72,10 +81,10 @@ PlaySFXCommand::PlaySFXCommand(const std::string &sfxName)
 {
 }
 
-bool PlaySFXCommand::Execute(Event &event, IGameContext &context)
+CommandResult PlaySFXCommand::Execute(ExecutionContext &ctx)
 {
 	AudioManager::Instance().PlaySFX(sfxName);
-	return false;
+	return CommandResult::Continue();
 }
 
 // TransferPlayerCommand
@@ -86,10 +95,122 @@ TransferPlayerCommand::TransferPlayerCommand(const std::string &mapName, int16_t
 {
 }
 
-bool TransferPlayerCommand::Execute(Event &event, IGameContext &context)
+CommandResult TransferPlayerCommand::Execute(ExecutionContext &ctx)
 {
-	context.TransferPlayer(mapName, tileX, tileY);
-	return true;
+	ctx.context.TransferPlayer(mapName, tileX, tileY);
+	return CommandResult::Terminate();
+}
+
+// SetMoveRouteCommand
+SetMoveRouteCommand::SetMoveRouteCommand(int16_t targetId, uint16_t pathId, bool bypassCollision)
+	: targetId(targetId)
+	, pathId(pathId)
+	, bypassCollision(bypassCollision)
+{
+}
+
+CommandResult SetMoveRouteCommand::Execute(ExecutionContext &ctx)
+{
+	Actor *actor = ctx.context.GetActorById(targetId);
+	if (actor)
+	{
+		std::string pathStr = PathDatabase::Instance().GetPath(pathId);
+		std::vector<Direction> steps = StringUtils::ParseMovePath(pathStr);
+		actor->QueueMoveRoute(steps, bypassCollision);
+	}
+	return CommandResult::Continue();
+}
+
+// WaitCommand
+WaitCommand::WaitCommand(int16_t frames)
+	: frames(frames)
+{
+}
+
+CommandResult WaitCommand::Execute(ExecutionContext &ctx)
+{
+	return CommandResult::WaitFrames(frames);
+}
+
+// WaitForMovementCommand
+WaitForMovementCommand::WaitForMovementCommand(int16_t targetId)
+	: targetId(targetId)
+{
+}
+
+CommandResult WaitForMovementCommand::Execute(ExecutionContext &ctx)
+{
+	return CommandResult::WaitForActor(targetId);
+}
+
+// FadeOutCommand
+FadeOutCommand::FadeOutCommand(int16_t speed)
+	: speed(speed)
+{
+}
+
+CommandResult FadeOutCommand::Execute(ExecutionContext &ctx)
+{
+	ctx.context.FadeOut(speed);
+	return CommandResult::Yield();
+}
+
+// FadeInCommand
+FadeInCommand::FadeInCommand(int16_t speed)
+	: speed(speed)
+{
+}
+
+CommandResult FadeInCommand::Execute(ExecutionContext &ctx)
+{
+	ctx.context.FadeIn(speed);
+	return CommandResult::Yield();
+}
+
+// PlayBGMCommand
+PlayBGMCommand::PlayBGMCommand(const std::string &bgmName)
+	: bgmName(bgmName)
+{
+}
+
+CommandResult PlayBGMCommand::Execute(ExecutionContext &ctx)
+{
+	ctx.context.PlayBGM(bgmName);
+	return CommandResult::Continue();
+}
+
+// SetFacingCommand
+SetFacingCommand::SetFacingCommand(int16_t targetId, Direction dir)
+	: targetId(targetId)
+	, dir(dir)
+{
+}
+
+CommandResult SetFacingCommand::Execute(ExecutionContext &ctx)
+{
+	Actor *actor = ctx.context.GetActorById(targetId);
+	if (actor)
+	{
+		actor->SetDirection(dir);
+	}
+	return CommandResult::Continue();
+}
+
+// SetSpeedCommand
+SetSpeedCommand::SetSpeedCommand(int16_t targetId, int16_t speed)
+	: targetId(targetId)
+	, speed(speed)
+{
+}
+
+CommandResult SetSpeedCommand::Execute(ExecutionContext &ctx)
+{
+	Actor *actor = ctx.context.GetActorById(targetId);
+	if (actor)
+	{
+		actor->SetMoveSpeed(speed);
+	}
+	return CommandResult::Continue();
 }
 
 // Factory
@@ -109,6 +230,22 @@ std::shared_ptr<IEventCommand> CreateEventCommand(const EventCommand &packedCmd)
 			return std::make_shared<PlaySFXCommand>(packedCmd.strParam1);
 		case CommandType::TRANSFER_PLAYER:
 			return std::make_shared<TransferPlayerCommand>(packedCmd.strParam1, packedCmd.val, packedCmd.extraVal);
+		case CommandType::SET_MOVE_ROUTE:
+			return std::make_shared<SetMoveRouteCommand>(packedCmd.val, static_cast<uint16_t>(packedCmd.extraVal), packedCmd.op != 0);
+		case CommandType::WAIT:
+			return std::make_shared<WaitCommand>(packedCmd.val);
+		case CommandType::WAIT_FOR_MOVEMENT:
+			return std::make_shared<WaitForMovementCommand>(packedCmd.val);
+		case CommandType::FADE_OUT:
+			return std::make_shared<FadeOutCommand>(packedCmd.val);
+		case CommandType::FADE_IN:
+			return std::make_shared<FadeInCommand>(packedCmd.val);
+		case CommandType::PLAY_BGM:
+			return std::make_shared<PlayBGMCommand>(packedCmd.strParam1);
+		case CommandType::SET_FACING:
+			return std::make_shared<SetFacingCommand>(packedCmd.val, static_cast<Direction>(packedCmd.op));
+		case CommandType::SET_SPEED:
+			return std::make_shared<SetSpeedCommand>(packedCmd.val, packedCmd.op);
 		default:
 			break;
 	}

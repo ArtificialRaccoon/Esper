@@ -16,6 +16,7 @@
 #include "Utilities/InputManager.h"
 #include "Utilities/AudioManager.h"
 #include "Events/Event.h"
+#include "Events/EventInterpreter.h"
 #include "Core/IGameContext.h"
 #include "Core/RenderSystem.h"
 
@@ -36,6 +37,15 @@ class MapState : public BaseState, public IGameContext
 		void TransferPlayer(const std::string &mapName, int tileX, int tileY) override;
 		const std::string& GetCurrentMapName() const override { return currentMapName; }
 
+		bool IsDialogActive() const override;
+		bool IsFading() const override;
+		Actor* GetActorById(int id) override;
+		Event* GetEventById(int id) override;
+		void PlayBGM(const std::string &bgmName) override;
+		void FadeOut(int speed) override;
+		void FadeIn(int speed) override;
+		void StartEventScript(const std::vector<std::shared_ptr<IEventCommand>> &commands, uint16_t eventId) override;
+
 	private:
 		TileMap tileMap;
 		BITMAP *tileset = nullptr;
@@ -51,6 +61,7 @@ class MapState : public BaseState, public IGameContext
 		std::string currentMapName;
 		uint16_t activeEventId = 0;
 		RenderSystem renderSystem;
+		EventInterpreter interpreter;
 
 	private:
 		void MapTransition(const std::string &mapName, int targetTileX, int targetTileY);

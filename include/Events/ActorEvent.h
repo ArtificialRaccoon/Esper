@@ -16,25 +16,26 @@ class ActorEvent : public Event, public Actor
 		int GetMapX() const override { return mapX; }
 		int GetMapY() const override { return mapY; }
 
-		void Update(const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents, bool isDialogActive);
-		void TurnToFacePlayer(int playerCenterX, int playerCenterY);
-		void ReleasePlayerFacing();
+		void Update(const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents, bool isDialogActive) override;
+		void OnInteractionStart(const Player &player, IGameContext &context) override;
+		void OnInteractionEnd() override;
+		Actor* AsActor() override { return this; }
+
 		Rect GetHitbox() const override;
 		bool CollidesWith(const Rect &playerRect) const override;
 
 		void Draw(BITMAP *dest, int scrollTileX, int scrollTileY) const override;
 
 	protected:
-		void OnPageChanged(bool wasActor) override;
+		void OnPageChanged() override;
 
 	private:
+		void TurnToFacePlayer(int playerCenterX, int playerCenterY);
+		void ReleasePlayerFacing();
 		bool CheckCollisionAt(int checkTileX, int checkTileY, const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents);
 
 	private:
-		int targetTileX = 0;
-		int targetTileY = 0;
 		EventMoveType moveType = EventMoveType::FIXED;
-		int moveSpeed = 1;
 		int moveFrequency = 30;
 		std::vector<Direction> movePath;
 
@@ -43,3 +44,4 @@ class ActorEvent : public Event, public Actor
 		int waitTicks = 0;
 		bool isFacingPlayerOverride = false;
 };
+

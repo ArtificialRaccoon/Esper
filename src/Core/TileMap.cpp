@@ -105,7 +105,6 @@ void TileMap::LoadEvents(TileMapHeader header, std::ifstream& file)
 		ReadBytes(file, &gameEvent, sizeof(gameEvent));
 
 		std::vector<EventPage> tempPages;
-		bool hasSprite = false;
 
 		for (uint16_t p = 0; p < gameEvent.pageCount; p++)
 		{
@@ -121,10 +120,6 @@ void TileMap::LoadEvents(TileMapHeader header, std::ifstream& file)
 			}
 
 			EventPage page(pageHeader, std::move(commands));
-			if (!page.GetSpriteName().empty() && page.GetSpriteFrame() == 0)
-			{
-				hasSprite = true;
-			}
 			tempPages.push_back(std::move(page));
 		}
 
@@ -135,7 +130,7 @@ void TileMap::LoadEvents(TileMapHeader header, std::ifstream& file)
 		int evEndTileY = gameEvent.endTileY;
 
 		std::unique_ptr<Event> ev;
-		if (hasSprite)
+		if (gameEvent.eventType == static_cast<uint8_t>(EventClassType::ACTOR))
 		{
 			ev = std::make_unique<ActorEvent>(
 				evId,

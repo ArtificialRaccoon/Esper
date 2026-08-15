@@ -25,25 +25,25 @@ EventPage::EventPage(const EventPageHeader &pageHeader, std::vector<std::shared_
 
 bool EventPage::IsActive(const std::string &mapName, uint16_t eventId) const
 {
-	if (!switchCondition.empty() && switchCondition != "0")
+	if (!switchCondition.empty())
 	{
 		if (!GameState::Instance().GetSwitch(switchCondition))
 			return false;
 	}
 
-	if (!selfSwitchCondition.empty() && selfSwitchCondition != "0")
+	if (!selfSwitchCondition.empty())
 	{
 		if (!GameState::Instance().GetSelfSwitch(mapName, eventId, selfSwitchCondition))
 			return false;
 	}
 
-	if (!variableCondition.empty() && variableCondition != "0")
+	if (!variableCondition.empty())
 	{
 		if (GameState::Instance().GetVariable(variableCondition) < variableThreshold)
 			return false;
 	}
 
-	if (!selfVariableCondition.empty() && selfVariableCondition != "0")
+	if (!selfVariableCondition.empty())
 	{
 		if (GameState::Instance().GetSelfVariable(mapName, eventId, selfVariableCondition) < variableThreshold)
 			return false;
@@ -52,11 +52,3 @@ bool EventPage::IsActive(const std::string &mapName, uint16_t eventId) const
 	return true;
 }
 
-void EventPage::Execute(Event &event, IGameContext &context) const
-{
-	for (const auto &cmd : commands)
-	{
-		if (cmd->Execute(event, context))
-			break;
-	}
-}

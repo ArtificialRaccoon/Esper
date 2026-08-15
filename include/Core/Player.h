@@ -6,7 +6,7 @@
 class Player : public Actor, public IRenderable
 {
 	public:
-		Player() {}
+		Player() { moveSpeed = 4; }
 		~Player() override;
 		bool Load(const char *filename);
 		void Update(bool isMoving, Direction dir);

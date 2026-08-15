@@ -32,10 +32,13 @@ void Player::Update(bool isMovingVal, Direction dir)
 
 void Player::ProcessMovementInput(int mapWidthPx, int mapHeightPx, const std::function<bool(int, int)> &isWalkable)
 {
+	if (HasActiveMoveRoute())
+		return;
+
 	isMoving = false;
 	int dx = 0;
 	int dy = 0;
-	int speed = WALK_SPEED;
+	int speed = moveSpeed;
 
 	if (InputManager::Instance().IsKeyDown(KEY_UP))
 	{
