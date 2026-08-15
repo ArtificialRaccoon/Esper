@@ -106,21 +106,34 @@ void InteractionSystem::ProcessTouch(Player &player, TileMap &tileMap, const std
 		if (!activePage)
 			continue;
 
-		if (activePage->GetTrigger() == EventTriggerType::PLAYER_TOUCH)
+		if (activePage->GetTrigger() == EventTriggerType::PLAYER_TOUCH ||
+		    activePage->GetTrigger() == EventTriggerType::EVENT_TOUCH)
 		{
 			int eventStartX = event->GetTileX();
 			int eventEndX = event->GetEndTileX();
 			int eventStartY = event->GetTileY();
 			int eventEndY = event->GetEndTileY();
 
-			if (playerStartTileX <= eventEndX && playerEndTileX >= eventStartX &&
-				playerStartTileY <= eventEndY && playerEndTileY >= eventStartY)
+			bool isColliding = (playerStartTileX <= eventEndX && playerEndTileX >= eventStartX &&
+			                    playerStartTileY <= eventEndY && playerEndTileY >= eventStartY);
+
+			if (!isColliding)
 			{
-				if (player.IsMoving())
-				{
-					context.StartEventScript(activePage->GetCommands(), event->GetEventId());
-					break;
-				}
+				Rect playerHitbox(
+					player.GetMapX() + CHARACTER_HITBOX_X_OFFSET,
+					player.GetMapX() + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH - 1,
+					player.GetMapY() + CHARACTER_HITBOX_Y_OFFSET,
+					player.GetMapY() + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT - 1
+				);
+				if (Collision::RectOverlaps(playerHitbox, event->GetHitbox()))
+					isColliding = true;
+			}
+
+			if (isColliding && player.IsMoving())
+			{
+				event->OnInteractionStart(player, context);
+				context.StartEventScript(activePage->GetCommands(), event->GetEventId());
+				break;
 			}
 		}
 	}

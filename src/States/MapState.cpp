@@ -169,7 +169,7 @@ void MapState::ProcessInput(GameProcessor *game)
 
 	for (auto &event : tileMap.GetEvents())
 	{
-		event->Update(tileMap, player.GetMapX(), player.GetMapY(), tileMap.GetEvents(), dialogBox.IsActive());
+		event->Update(tileMap, player.GetMapX(), player.GetMapY(), tileMap.GetEvents(), dialogBox.IsActive(), *this);
 	}
 
 	if (player.HasActiveMoveRoute())
@@ -299,5 +299,6 @@ void MapState::TransferPlayer(const std::string &mapName, int tileX, int tileY)
 
 void MapState::StartEventScript(const std::vector<std::shared_ptr<IEventCommand>> &commands, uint16_t eventId)
 {
+	activeEventId = eventId;
 	interpreter.Start(commands, eventId, *this);
 }

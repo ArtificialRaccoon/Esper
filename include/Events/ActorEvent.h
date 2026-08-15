@@ -16,7 +16,7 @@ class ActorEvent : public Event, public Actor
 		int GetMapX() const override { return mapX; }
 		int GetMapY() const override { return mapY; }
 
-		void Update(const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents, bool isDialogActive) override;
+		void Update(const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents, bool isDialogActive, IGameContext &context) override;
 		void OnInteractionStart(const Player &player, IGameContext &context) override;
 		void OnInteractionEnd() override;
 		Actor* AsActor() override { return this; }
@@ -32,6 +32,7 @@ class ActorEvent : public Event, public Actor
 	private:
 		void TurnToFacePlayer(int playerCenterX, int playerCenterY);
 		void ReleasePlayerFacing();
+		bool CollidesWithPlayer(int targetPixelX, int targetPixelY, int playerMapX, int playerMapY) const;
 		bool CheckCollisionAt(int checkTileX, int checkTileY, const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents);
 
 	private:
@@ -42,6 +43,7 @@ class ActorEvent : public Event, public Actor
 		Direction savedDir = Direction::DOWN;
 		size_t pathIndex = 0;
 		int waitTicks = 0;
+		int touchCooldownTicks = 0;
 		bool isFacingPlayerOverride = false;
 };
 

@@ -75,8 +75,9 @@ def convert(tmx_path: Path, out_path: Path) -> None:
     TRIGGER_MAP = {
         "ACTION_BUTTON": 0,
         "PLAYER_TOUCH": 1,
-        "AUTORUN": 2,
-        "NONE": 3,
+        "EVENT_TOUCH": 2,
+        "AUTORUN": 3,
+        "NONE": 4,
     }
 
     MOVE_TYPE_MAP = {
@@ -178,7 +179,7 @@ def convert(tmx_path: Path, out_path: Path) -> None:
             
             for page in event["pages"]:
                 trigger_str = page.get("trigger", "NONE")
-                trigger_val = TRIGGER_MAP.get(trigger_str, 3)
+                trigger_val = TRIGGER_MAP.get(trigger_str, 4)
                 graphic_frame = int(page.get("spriteFrame", 0))
                 is_walkable = int(page.get("isWalkable", 1))
                 var_threshold = int(page.get("variableThreshold", 0))

@@ -42,14 +42,8 @@ void ActorEvent::OnPageChanged()
 	}
 }
 
-bool ActorEvent::CheckCollisionAt(int checkTileX, int checkTileY, const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents)
+bool ActorEvent::CollidesWithPlayer(int targetPixelX, int targetPixelY, int playerMapX, int playerMapY) const
 {
-	int targetPixelX = checkTileX * TILE_SIZE;
-	int targetPixelY = checkTileY * TILE_SIZE;
-
-	if (tileMap.CheckCollision(targetPixelX, targetPixelY, TILE_SIZE, TILE_SIZE))
-		return true;
-
 	int playerHitboxLeft = playerMapX + CHARACTER_HITBOX_X_OFFSET;
 	int playerHitboxRight = playerHitboxLeft + CHARACTER_HITBOX_WIDTH - 1;
 	int playerHitboxTop = playerMapY + CHARACTER_HITBOX_Y_OFFSET;
@@ -60,7 +54,18 @@ bool ActorEvent::CheckCollisionAt(int checkTileX, int checkTileY, const TileMap 
 	int npcTop = targetPixelY;
 	int npcBottom = targetPixelY + TILE_SIZE - 1;
 
-	if (npcLeft <= playerHitboxRight && npcRight >= playerHitboxLeft && npcTop <= playerHitboxBottom && npcBottom >= playerHitboxTop)
+	return (npcLeft <= playerHitboxRight && npcRight >= playerHitboxLeft && npcTop <= playerHitboxBottom && npcBottom >= playerHitboxTop);
+}
+
+bool ActorEvent::CheckCollisionAt(int checkTileX, int checkTileY, const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents)
+{
+	int targetPixelX = checkTileX * TILE_SIZE;
+	int targetPixelY = checkTileY * TILE_SIZE;
+
+	if (tileMap.CheckCollision(targetPixelX, targetPixelY, TILE_SIZE, TILE_SIZE))
+		return true;
+
+	if (CollidesWithPlayer(targetPixelX, targetPixelY, playerMapX, playerMapY))
 		return true;
 
 	for (const auto &ev : allEvents)
@@ -84,8 +89,11 @@ bool ActorEvent::CheckCollisionAt(int checkTileX, int checkTileY, const TileMap 
 	return false;
 }
 
-void ActorEvent::Update(const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents, bool isDialogActive)
+void ActorEvent::Update(const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents, bool isDialogActive, IGameContext &context)
 {
+	if (touchCooldownTicks > 0)
+		touchCooldownTicks--;
+
 	if (isFacingPlayerOverride || isDialogActive)
 	{
 		currentFrame = 0;
@@ -95,7 +103,23 @@ void ActorEvent::Update(const TileMap &tileMap, int playerMapX, int playerMapY, 
 
 	if (HasActiveMoveRoute())
 	{
-		UpdateMoveRouteStep([this, &tileMap, playerMapX, playerMapY, &allEvents](int tx, int ty) {
+		UpdateMoveRouteStep([this, &tileMap, playerMapX, playerMapY, &allEvents, &context](int tx, int ty) {
+			if (CollidesWithPlayer(tx * TILE_SIZE, ty * TILE_SIZE, playerMapX, playerMapY))
+			{
+				const EventPage *activePage = GetActivePage();
+				if (activePage && activePage->GetTrigger() == EventTriggerType::EVENT_TOUCH && touchCooldownTicks == 0)
+				{
+					if (!context.IsDialogActive() && !context.IsFading())
+					{
+						int playerCenterX = playerMapX + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH / 2;
+						int playerCenterY = playerMapY + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT / 2;
+						TurnToFacePlayer(playerCenterX, playerCenterY);
+						context.StartEventScript(activePage->GetCommands(), eventId);
+						touchCooldownTicks = moveFrequency + 30;
+					}
+				}
+				return false;
+			}
 			return !CheckCollisionAt(tx, ty, tileMap, playerMapX, playerMapY, allEvents);
 		});
 		return;
@@ -164,6 +188,28 @@ void ActorEvent::Update(const TileMap &tileMap, int playerMapX, int playerMapY, 
 	}
 
 	currentDir = candidateDir;
+
+	int targetPixelX = nextTileX * TILE_SIZE;
+	int targetPixelY = nextTileY * TILE_SIZE;
+	if (CollidesWithPlayer(targetPixelX, targetPixelY, playerMapX, playerMapY))
+	{
+		const EventPage *activePage = GetActivePage();
+		if (activePage && activePage->GetTrigger() == EventTriggerType::EVENT_TOUCH && touchCooldownTicks == 0)
+		{
+			if (!context.IsDialogActive() && !context.IsFading())
+			{
+				int playerCenterX = playerMapX + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH / 2;
+				int playerCenterY = playerMapY + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT / 2;
+				TurnToFacePlayer(playerCenterX, playerCenterY);
+				context.StartEventScript(activePage->GetCommands(), eventId);
+				touchCooldownTicks = moveFrequency + 30;
+				waitTicks = moveFrequency;
+				return;
+			}
+		}
+		waitTicks = std::max(NPC_BLOCKED_RETRY_MIN_TICKS, moveFrequency / 2);
+		return;
+	}
 
 	if (!CheckCollisionAt(nextTileX, nextTileY, tileMap, playerMapX, playerMapY, allEvents))
 	{

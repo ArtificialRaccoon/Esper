@@ -37,7 +37,7 @@ class Event : public IRenderable
 		virtual Rect GetHitbox() const = 0;
 		virtual bool CollidesWith(const Rect &playerRect) const = 0;
 
-		virtual void Update(const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents, bool isDialogActive) {}
+		virtual void Update(const TileMap &tileMap, int playerMapX, int playerMapY, const std::vector<std::unique_ptr<Event>> &allEvents, bool isDialogActive, IGameContext &context) {}
 		virtual void OnInteractionStart(const Player &player, IGameContext &context) {}
 		virtual void OnInteractionEnd() {}
 		virtual Actor* AsActor() { return nullptr; }

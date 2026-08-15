@@ -6,6 +6,7 @@ enum class EventTriggerType : uint8_t
 {
 	ACTION_BUTTON,
 	PLAYER_TOUCH,
+	EVENT_TOUCH,
 	AUTORUN,
 	NONE
 };
