@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include "allegro.h"
+#include "Core/GameDefines.h"
 
 class AudioManager
 {
@@ -12,7 +13,7 @@ class AudioManager
 			return instance;
 		}
 
-		void PlaySFX(const std::string &name) { PlaySFX(name, 255, 128); }
+		void PlaySFX(const std::string &name) { PlaySFX(name, AUDIO_MAX_VOLUME, AUDIO_PAN_CENTER); }
 		void PlaySFX(const std::string &name, int volume, int pan);
 		bool IsSFXPlaying(const std::string &name);
 
@@ -40,6 +41,6 @@ class AudioManager
 		std::map<std::string, int> activeVoices;
 		MIDI *currentMidi = nullptr;
 		std::string currentTrackName;
-		int musicVolume = 255;
-		int sfxVolume = 255;
-};
+		int musicVolume = AUDIO_MAX_VOLUME;
+		int sfxVolume = AUDIO_MAX_VOLUME;
+};

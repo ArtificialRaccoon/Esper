@@ -1,5 +1,6 @@
 #include "Utilities/AudioManager.h"
 #include "Core/AssetPaths.h"
+#include "Core/GameDefines.h"
 
 SAMPLE* AudioManager::LoadOrGetSample(const std::string &name)
 {
@@ -38,8 +39,8 @@ void AudioManager::PlaySFX(const std::string &name, int volume, int pan)
 	SAMPLE *sample = LoadOrGetSample(name);
 	if (sample)
 	{
-		int scaledVolume = (volume * sfxVolume) / 255;
-		int voice = play_sample(sample, scaledVolume, pan, 1000, FALSE);
+		int scaledVolume = (volume * sfxVolume) / AUDIO_MAX_VOLUME;
+		int voice = play_sample(sample, scaledVolume, pan, AUDIO_DEFAULT_PITCH, FALSE);
 		if (voice >= 0)
 		{
 			for (auto it = activeVoices.begin(); it != activeVoices.end(); )
@@ -84,13 +85,13 @@ void AudioManager::StopMusic()
 
 void AudioManager::SetMusicVolume(int volume)
 {
-	musicVolume = (volume < 0) ? 0 : (volume > 255 ? 255 : volume);
+	musicVolume = (volume < 0) ? 0 : (volume > AUDIO_MAX_VOLUME ? AUDIO_MAX_VOLUME : volume);
 	set_volume(-1, musicVolume);
 }
 
 void AudioManager::SetSFXVolume(int volume)
 {
-	sfxVolume = (volume < 0) ? 0 : (volume > 255 ? 255 : volume);
+	sfxVolume = (volume < 0) ? 0 : (volume > AUDIO_MAX_VOLUME ? AUDIO_MAX_VOLUME : volume);
 }
 
 void AudioManager::UnloadAll()
