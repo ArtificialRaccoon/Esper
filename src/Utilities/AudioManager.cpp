@@ -1,4 +1,5 @@
 #include "Utilities/AudioManager.h"
+#include "Core/AssetPaths.h"
 
 SAMPLE* AudioManager::LoadOrGetSample(const std::string &name)
 {
@@ -6,7 +7,7 @@ SAMPLE* AudioManager::LoadOrGetSample(const std::string &name)
 	if (it != sampleCache.end())
 		return it->second;
 
-	std::string path = ".\\SFX\\" + name + ".WAV";
+	std::string path = std::string(AssetPaths::DIR_SFX) + name + ".WAV";
 	SAMPLE *sample = load_sample(path.c_str());
 	if (sample)
 		sampleCache[name] = sample;
@@ -60,7 +61,7 @@ void AudioManager::PlayMusic(const std::string &name, bool loop)
 
 	StopMusic();
 
-	std::string path = ".\\MUSIC\\" + name + ".MID";
+	std::string path = std::string(AssetPaths::DIR_MUSIC) + name + ".MID";
 	currentMidi = load_midi(path.c_str());
 	if (currentMidi)
 	{

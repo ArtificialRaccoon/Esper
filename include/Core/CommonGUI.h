@@ -20,6 +20,8 @@ class CommonGUI
 		void LoadPalette(const char *filename);
 		void LoadPalette(const char *filename, int startIndex, int endIndex);
 
+		void DrawNineSliceBox(BITMAP *dest, int x, int y, int width, int height);
+
 	private:
 		CommonGUI();
 

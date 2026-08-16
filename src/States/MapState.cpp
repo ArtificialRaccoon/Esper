@@ -3,6 +3,7 @@
 #include "Core/StringDatabase.h"
 #include "Core/InteractionSystem.h"
 #include "Core/TextureCache.h"
+#include "Core/AssetPaths.h"
 #include "Utilities/Collision.h"
 
 void MapState::InitState(GameProcessor *game)
@@ -36,7 +37,7 @@ void MapState::MapTransition(const std::string &mapName, int targetTileX, int ta
 	currentMapName = mapName;
 	activeEventId = 0;
 	parallelTasks.clear();
-	tileMap.Load(".\\MAPS\\" + mapName + ".bin");
+	tileMap.Load(std::string(AssetPaths::DIR_MAPS) + mapName + ".bin");
 
 	TextureCache::Instance().Clear();
 	for (auto &event : tileMap.GetEvents())

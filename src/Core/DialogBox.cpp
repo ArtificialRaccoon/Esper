@@ -82,43 +82,12 @@ void DialogBox::Draw(BITMAP *dest, int scrollXOffset, int scrollYOffset)
 	if (!active)
 		return;
 
-	BITMAP *guiSheet = CommonGUI::Instance().GetBitmap();
 	int x = scrollXOffset + marginX;
 	int y = scrollYOffset + SCREEN_HEIGHT - boxHeight - marginY;
 	int width = SCREEN_WIDTH - (marginX * 2);
 	int height = boxHeight;
 
-	if (guiSheet)
-	{
-		masked_blit(guiSheet, dest, 0, 0, x, y, TILE_SIZE, TILE_SIZE);
-		masked_blit(guiSheet, dest, TILE_SIZE * 2, 0, x + width - TILE_SIZE, y, TILE_SIZE, TILE_SIZE);
-		masked_blit(guiSheet, dest, 0, TILE_SIZE * 2, x, y + height - TILE_SIZE, TILE_SIZE, TILE_SIZE);
-		masked_blit(guiSheet, dest, TILE_SIZE * 2, TILE_SIZE * 2, x + width - TILE_SIZE, y + height - TILE_SIZE, TILE_SIZE, TILE_SIZE);
-
-		for (int px = x + TILE_SIZE; px < x + width - TILE_SIZE; px += TILE_SIZE)
-		{
-			int drawWidth = std::min(TILE_SIZE, (x + width - TILE_SIZE) - px);
-			masked_blit(guiSheet, dest, TILE_SIZE, 0, px, y, drawWidth, TILE_SIZE);
-			masked_blit(guiSheet, dest, TILE_SIZE, TILE_SIZE * 2, px, y + height - TILE_SIZE, drawWidth, TILE_SIZE);
-		}
-
-		for (int py = y + TILE_SIZE; py < y + height - TILE_SIZE; py += TILE_SIZE)
-		{
-			int drawHeight = std::min(TILE_SIZE, (y + height - TILE_SIZE) - py);
-			masked_blit(guiSheet, dest, 0, TILE_SIZE, x, py, TILE_SIZE, drawHeight);
-			masked_blit(guiSheet, dest, TILE_SIZE * 2, TILE_SIZE, x + width - TILE_SIZE, py, TILE_SIZE, drawHeight);
-		}
-
-		for (int py = y + TILE_SIZE; py < y + height - TILE_SIZE; py += TILE_SIZE)
-		{
-			int drawHeight = std::min(TILE_SIZE, (y + height - TILE_SIZE) - py);
-			for (int px = x + TILE_SIZE; px < x + width - TILE_SIZE; px += TILE_SIZE)
-			{
-				int drawWidth = std::min(TILE_SIZE, (x + width - TILE_SIZE) - px);
-				masked_blit(guiSheet, dest, TILE_SIZE, TILE_SIZE, px, py, drawWidth, drawHeight);
-			}
-		}
-	}
+	CommonGUI::Instance().DrawNineSliceBox(dest, x, y, width, height);
 
 	FONT *fontObj = CommonGUI::Instance().GetFont(0);
 	int textX = x + paddingX;

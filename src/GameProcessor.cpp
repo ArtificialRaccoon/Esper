@@ -1,6 +1,7 @@
 #include "GameProcessor.h"
 #include "Core/CommonGUI.h"
 #include "Core/PathDatabase.h"
+#include "Core/AssetPaths.h"
 
 
 void GameProcessor::InitializeGame()
@@ -10,15 +11,15 @@ void GameProcessor::InitializeGame()
 
 	install_keyboard();
 
-	if (!GameDatabase::Instance().Load(".\\GAMEDB.BIN"))
+	if (!GameDatabase::Instance().Load(AssetPaths::GAMEDB))
 	{
 		set_gfx_mode(GFX_TEXT, 0, 0, 0, 0);
 		allegro_message("Unable to load GAMEDB.BIN\n");
 		exit(0);
 	}
 
-	StringDatabase::Instance().Load(".\\STRINGS.BIN");
-	PathDatabase::Instance().Load(".\\PATHS.BIN");
+	StringDatabase::Instance().Load(AssetPaths::STRINGS);
+	PathDatabase::Instance().Load(AssetPaths::PATHS);
 
 	set_color_depth(8);
 	if (set_gfx_mode(GFX_MODEX, SCREEN_WIDTH, SCREEN_HEIGHT, 352, 480) != 0)
