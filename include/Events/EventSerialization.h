@@ -8,6 +8,7 @@ enum class EventTriggerType : uint8_t
 	PLAYER_TOUCH,
 	EVENT_TOUCH,
 	AUTORUN,
+	PARALLEL,
 	NONE
 };
 
@@ -27,7 +28,8 @@ enum class CommandType : uint8_t
 	FADE_IN = 11,
 	PLAY_BGM = 12,
 	SET_FACING = 13,
-	SET_SPEED = 14
+	SET_SPEED = 14,
+	SHOW_CHOICES = 15
 };
 
 struct __attribute__((packed)) EventCommand

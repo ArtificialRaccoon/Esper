@@ -35,6 +35,7 @@ void MapState::MapTransition(const std::string &mapName, int targetTileX, int ta
 {
 	currentMapName = mapName;
 	activeEventId = 0;
+	parallelTasks.clear();
 	tileMap.Load(".\\MAPS\\" + mapName + ".bin");
 
 	TextureCache::Instance().Clear();
@@ -111,7 +112,7 @@ void MapState::AcquireInput(GameProcessor *game)
 	if (InputManager::Instance().IsKeyPressed(KEY_ENTER) || InputManager::Instance().IsKeyPressed(KEY_SPACE))
 		interactPressed = true;
 
-	if (IsFading() || dialogBox.IsActive() || interpreter.IsActive())
+	if (IsFading() || choiceBox.IsActive() || dialogBox.IsActive() || interpreter.IsActive())
 		return;
 
 	player.ProcessMovementInput(mapWidthPx, mapHeightPx, [this](int x, int y) { return IsWalkable(x, y); });
@@ -129,8 +130,24 @@ void MapState::ProcessInput(GameProcessor *game)
 	if (interpreter.IsActive())
 		interpreter.Update(*this);
 
+	UpdateParallelTasks();
+
 	if (IsFading())
 		return;
+
+	if (choiceBox.IsActive())
+	{
+		choiceBox.Update();
+		if (InputManager::Instance().IsKeyPressed(KEY_UP))
+			choiceBox.SelectPrevious();
+		else if (InputManager::Instance().IsKeyPressed(KEY_DOWN))
+			choiceBox.SelectNext();
+
+		if (interactPressed)
+			choiceBox.Confirm();
+
+		return;
+	}
 
 	if (dialogBox.IsActive())
 	{
@@ -138,7 +155,7 @@ void MapState::ProcessInput(GameProcessor *game)
 		if (interactPressed)
 			dialogBox.Advance();
 
-		if (!dialogBox.IsActive() && activeEventId != 0)
+		if (!dialogBox.IsActive() && activeEventId != 0 && !interpreter.IsActive() && !choiceBox.IsActive())
 		{
 			if (Event *ev = GetEventById(activeEventId))
 				ev->OnInteractionEnd();
@@ -147,7 +164,14 @@ void MapState::ProcessInput(GameProcessor *game)
 		return;
 	}
 
-	if (!interpreter.IsActive() && !dialogBox.IsActive())
+	if (!interpreter.IsActive() && !dialogBox.IsActive() && !choiceBox.IsActive() && activeEventId != 0)
+	{
+		if (Event *ev = GetEventById(activeEventId))
+			ev->OnInteractionEnd();
+		activeEventId = 0;
+	}
+
+	if (!interpreter.IsActive() && !dialogBox.IsActive() && !choiceBox.IsActive())
 	{
 		for (auto &event : tileMap.GetEvents())
 		{
@@ -160,7 +184,7 @@ void MapState::ProcessInput(GameProcessor *game)
 		}
 	}
 
-	if (!interpreter.IsActive() && !dialogBox.IsActive())
+	if (!interpreter.IsActive() && !dialogBox.IsActive() && !choiceBox.IsActive())
 	{
 		if (interactPressed)
 			InteractionSystem::ProcessAction(player, tileMap, currentMapName, *this, activeEventId);
@@ -169,7 +193,7 @@ void MapState::ProcessInput(GameProcessor *game)
 
 	for (auto &event : tileMap.GetEvents())
 	{
-		event->Update(tileMap, player.GetMapX(), player.GetMapY(), tileMap.GetEvents(), dialogBox.IsActive(), *this);
+		event->Update(tileMap, player.GetMapX(), player.GetMapY(), tileMap.GetEvents(), dialogBox.IsActive() || choiceBox.IsActive(), *this);
 	}
 
 	if (player.HasActiveMoveRoute())
@@ -205,6 +229,8 @@ void MapState::FrameRender(GameProcessor *game)
 	tileMap.DrawUpper(game->GetBackBuffer(), tileset, currentScrollTileX, currentScrollTileY);
 	if (dialogBox.IsActive())
 		dialogBox.Draw(game->GetBackBuffer(), scrollX % TILE_SIZE, scrollY % TILE_SIZE);
+	if (choiceBox.IsActive())
+		choiceBox.Draw(game->GetBackBuffer(), scrollX % TILE_SIZE, scrollY % TILE_SIZE);
 }
 
 void MapState::UnloadResources()
@@ -221,12 +247,28 @@ void MapState::UnloadResources()
 		BUFFER = nullptr;
 	}
 
+	parallelTasks.clear();
 	TextureCache::Instance().Clear();
 }
 
 bool MapState::IsDialogActive() const
 {
 	return dialogBox.IsActive();
+}
+
+bool MapState::IsDialogTyping() const
+{
+	return dialogBox.IsTyping();
+}
+
+void MapState::CloseDialog()
+{
+	dialogBox.Close();
+}
+
+bool MapState::IsChoiceActive() const
+{
+	return choiceBox.IsActive();
 }
 
 bool MapState::IsFading() const
@@ -281,6 +323,16 @@ void MapState::ShowText(const std::string &text)
 	dialogBox.SetText(text);
 }
 
+void MapState::ShowChoices(const std::vector<std::string> &choices)
+{
+	choiceBox.SetChoices(choices);
+}
+
+int MapState::GetSelectedChoice() const
+{
+	return choiceBox.GetSelectedIndex();
+}
+
 void MapState::TransferPlayer(const std::string &mapName, int tileX, int tileY)
 {
 	MapTransition(mapName, tileX, tileY);
@@ -301,4 +353,37 @@ void MapState::StartEventScript(const std::vector<std::shared_ptr<IEventCommand>
 {
 	activeEventId = eventId;
 	interpreter.Start(commands, eventId, *this);
+}
+
+void MapState::UpdateParallelTasks()
+{
+	std::vector<uint16_t> activeParallelIds;
+
+	for (auto &event : tileMap.GetEvents())
+	{
+		const EventPage *activePage = event->GetActivePage();
+		if (activePage && activePage->GetTrigger() == EventTriggerType::PARALLEL)
+		{
+			uint16_t evId = event->GetEventId();
+			activeParallelIds.push_back(evId);
+
+			auto it = parallelTasks.find(evId);
+			if (it == parallelTasks.end() || !it->second.IsActive())
+			{
+				parallelTasks[evId].Start(activePage->GetCommands(), evId, *this, true);
+			}
+			else
+			{
+				it->second.Update(*this);
+			}
+		}
+	}
+
+	for (auto it = parallelTasks.begin(); it != parallelTasks.end(); )
+	{
+		if (std::find(activeParallelIds.begin(), activeParallelIds.end(), it->first) == activeParallelIds.end())
+			it = parallelTasks.erase(it);
+		else
+			++it;
+	}
 }

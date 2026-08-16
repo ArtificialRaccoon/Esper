@@ -161,3 +161,9 @@ void DialogBox::Advance()
 	else
 		active = false;
 }
+
+void DialogBox::Close()
+{
+	active = false;
+	isFinished = true;
+}

@@ -77,7 +77,8 @@ def convert(tmx_path: Path, out_path: Path) -> None:
         "PLAYER_TOUCH": 1,
         "EVENT_TOUCH": 2,
         "AUTORUN": 3,
-        "NONE": 4,
+        "PARALLEL": 4,
+        "NONE": 5,
     }
 
     MOVE_TYPE_MAP = {
@@ -179,7 +180,7 @@ def convert(tmx_path: Path, out_path: Path) -> None:
             
             for page in event["pages"]:
                 trigger_str = page.get("trigger", "NONE")
-                trigger_val = TRIGGER_MAP.get(trigger_str, 4)
+                trigger_val = TRIGGER_MAP.get(trigger_str, 5)
                 graphic_frame = int(page.get("spriteFrame", 0))
                 is_walkable = int(page.get("isWalkable", 1))
                 var_threshold = int(page.get("variableThreshold", 0))
@@ -204,7 +205,108 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                 self_switch_cond_bytes = clean_cond(page.get("selfSwitchCondition", "")).encode("ascii", errors="replace")[:7].ljust(8, b"\0")
                 sprite_name_bytes = clean_cond(page.get("spriteName", "")).encode("ascii", errors="replace")[:7].ljust(8, b"\0")
                 
-                parsed_cmds = []
+                def expand_command_list(c_list):
+                    expanded = []
+                    for c_prop in c_list:
+                        if isinstance(c_prop, dict):
+                            c_type = c_prop.get("type", "NONE")
+                            if c_type == "SHOW_TEXT":
+                                if (inc_self := c_prop.get("incSelfVar", "")):
+                                    expanded.append({"type": "CONTROL_SELF_VAR", "varName": inc_self, "op": "ADD", "value": 1})
+                                elif (self_sw := c_prop.get("selfSwitch", "")):
+                                    expanded.append({"type": "CONTROL_SELF_SWITCH", "switch": self_sw, "value": True})
+                                elif (inc_v := c_prop.get("incVar", "")):
+                                    expanded.append({"type": "CONTROL_VAR", "varName": inc_v, "op": "ADD", "value": 1})
+                                expanded.append(c_prop)
+                            else:
+                                expanded.append(c_prop)
+                    return expanded
+
+                def write_raw_cmd(c_type, c_op, c_val, c_extra, c_str):
+                    str_bytes = c_str.encode("ascii", errors="replace")[:23].ljust(24, b"\0")
+                    fout.write(struct.pack("<BBhh24s2x", c_type, c_op, c_val, c_extra, str_bytes))
+
+                def serialize_command(c_prop):
+                    c_type = c_prop.get("type", "NONE")
+                    if c_type == "SHOW_TEXT":
+                        text = c_prop.get("text", "")
+                        string_idx = string_map.get(text, -1)
+                        write_raw_cmd(1, 0, string_idx, 0, "")
+                    elif c_type == "CONTROL_SELF_SWITCH":
+                        sw = c_prop.get("switch", "A")
+                        val = 1 if c_prop.get("value", True) else 0
+                        write_raw_cmd(2, val, 0, 0, sw)
+                    elif c_type == "CONTROL_SELF_VAR":
+                        var_name = c_prop.get("varName", "")
+                        op_val = 1 if c_prop.get("op", "ADD") == "ADD" else 0
+                        val = c_prop.get("value", 1)
+                        write_raw_cmd(3, op_val, val, 0, var_name)
+                    elif c_type == "CONTROL_VAR":
+                        var_name = c_prop.get("varName", "")
+                        op_val = 1 if c_prop.get("op", "ADD") == "ADD" else 0
+                        val = c_prop.get("value", 1)
+                        write_raw_cmd(4, op_val, val, 0, var_name)
+                    elif c_type == "PLAY_SFX":
+                        sfx = c_prop.get("sfxName", "")
+                        write_raw_cmd(5, 0, 0, 0, sfx)
+                    elif c_type == "TRANSFER" or c_type == "TRANSFER_PLAYER":
+                        m_name = c_prop.get("mapName", "")
+                        tx = c_prop.get("tileX", 0)
+                        ty = c_prop.get("tiley", c_prop.get("tileY", 0))
+                        write_raw_cmd(6, 0, tx, ty, m_name)
+                    elif c_type == "SET_MOVE_ROUTE":
+                        target_id = int(c_prop.get("targetId", 0))
+                        bypass_col = 1 if c_prop.get("bypassCollision", False) else 0
+                        path_str = c_prop.get("movePath", "")
+                        path_id = path_map.get(path_str, -1)
+                        if path_id == -1 and path_str:
+                            print(f"Warning: Move path '{path_str}' not found in PATHS.json. Make sure to compile paths.")
+                        write_raw_cmd(7, bypass_col, target_id, path_id, "")
+                    elif c_type == "WAIT":
+                        frames = int(c_prop.get("frames", 60))
+                        write_raw_cmd(8, 0, frames, 0, "")
+                    elif c_type == "WAIT_FOR_MOVEMENT":
+                        target_id = int(c_prop.get("targetId", 0))
+                        write_raw_cmd(9, 0, target_id, 0, "")
+                    elif c_type == "FADE_OUT":
+                        speed = int(c_prop.get("speed", 2))
+                        write_raw_cmd(10, 0, speed, 0, "")
+                    elif c_type == "FADE_IN":
+                        speed = int(c_prop.get("speed", 2))
+                        write_raw_cmd(11, 0, speed, 0, "")
+                    elif c_type == "PLAY_BGM":
+                        bgm = c_prop.get("bgmName", "")
+                        write_raw_cmd(12, 0, 0, 0, bgm)
+                    elif c_type == "SET_FACING":
+                        target_id = int(c_prop.get("targetId", 0))
+                        dir_str = str(c_prop.get("direction", "DOWN")).strip().upper()
+                        DIR_MAP = { "DOWN": 0, "RIGHT": 1, "UP": 2, "LEFT": 3 }
+                        dir_val = DIR_MAP.get(dir_str, 0)
+                        write_raw_cmd(13, dir_val, target_id, 0, "")
+                    elif c_type == "SET_SPEED":
+                        target_id = int(c_prop.get("targetId", 0))
+                        speed = int(c_prop.get("speed", 2))
+                        write_raw_cmd(14, speed, target_id, 0, "")
+                    elif c_type == "SHOW_CHOICES":
+                        raw_choices = c_prop.get("choices", [])
+                        if not isinstance(raw_choices, list):
+                            raw_choices = []
+                        write_raw_cmd(15, len(raw_choices), 0, 0, "")
+                        for opt in raw_choices:
+                            if isinstance(opt, dict):
+                                opt_text = opt.get("text", "")
+                                str_idx = string_map.get(opt_text, -1)
+                                sub_cmds = opt.get("commands", [])
+                                if not isinstance(sub_cmds, list):
+                                    sub_cmds = []
+                                expanded_subs = expand_command_list(sub_cmds)
+                                fout.write(struct.pack("<HH", str_idx, len(expanded_subs)))
+                                for sc in expanded_subs:
+                                    serialize_command(sc)
+                            elif isinstance(opt, str):
+                                str_idx = string_map.get(opt, -1)
+                                fout.write(struct.pack("<HH", str_idx, 0))
+
                 cmd_list = page.get("commands", [])
                 if not isinstance(cmd_list, list):
                     cmd_list = []
@@ -212,81 +314,12 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                 if isinstance(single_cmd, dict):
                     cmd_list.append(single_cmd)
 
-                for cmd_prop in cmd_list:
-                    if isinstance(cmd_prop, dict):
-                        cmd_type = cmd_prop.get("type", "NONE")
-                        if cmd_type == "SHOW_TEXT":
-                            text = cmd_prop.get("text", "")
-                            string_idx = string_map.get(text, -1)
-                            if (inc_self_var := cmd_prop.get("incSelfVar", "")):
-                                parsed_cmds.append((3, 1, 1, 0, inc_self_var))
-                            elif (self_switch := cmd_prop.get("selfSwitch", "")):
-                                parsed_cmds.append((2, 1, 0, 0, self_switch))
-                            elif (inc_var := cmd_prop.get("incVar", "")):
-                                parsed_cmds.append((4, 1, 1, 0, inc_var))
-                            parsed_cmds.append((1, 0, string_idx, 0, ""))
-                        elif cmd_type == "CONTROL_SELF_SWITCH":
-                            sw = cmd_prop.get("switch", "A")
-                            val = 1 if cmd_prop.get("value", True) else 0
-                            parsed_cmds.append((2, val, 0, 0, sw))
-                        elif cmd_type == "CONTROL_SELF_VAR":
-                            var_name = cmd_prop.get("varName", "")
-                            op_val = 1 if cmd_prop.get("op", "ADD") == "ADD" else 0
-                            val = cmd_prop.get("value", 1)
-                            parsed_cmds.append((3, op_val, val, 0, var_name))
-                        elif cmd_type == "CONTROL_VAR":
-                            var_name = cmd_prop.get("varName", "")
-                            op_val = 1 if cmd_prop.get("op", "ADD") == "ADD" else 0
-                            val = cmd_prop.get("value", 1)
-                            parsed_cmds.append((4, op_val, val, 0, var_name))
-                        elif cmd_type == "PLAY_SFX":
-                            sfx = cmd_prop.get("sfxName", "")
-                            parsed_cmds.append((5, 0, 0, 0, sfx))
-                        elif cmd_type == "TRANSFER" or cmd_type == "TRANSFER_PLAYER":
-                            m_name = cmd_prop.get("mapName", "")
-                            tx = cmd_prop.get("tileX", 0)
-                            ty = cmd_prop.get("tiley", cmd_prop.get("tileY", 0))
-                            parsed_cmds.append((6, 0, tx, ty, m_name))
-                        elif cmd_type == "SET_MOVE_ROUTE":
-                            target_id = int(cmd_prop.get("targetId", 0))
-                            bypass_col = 1 if cmd_prop.get("bypassCollision", False) else 0
-                            path_str = cmd_prop.get("movePath", "")
-                            path_id = path_map.get(path_str, -1)
-                            if path_id == -1 and path_str:
-                                print(f"Warning: Move path '{path_str}' not found in PATHS.json. Make sure to compile paths.")
-                            parsed_cmds.append((7, bypass_col, target_id, path_id, ""))
-                        elif cmd_type == "WAIT":
-                            frames = int(cmd_prop.get("frames", 60))
-                            parsed_cmds.append((8, 0, frames, 0, ""))
-                        elif cmd_type == "WAIT_FOR_MOVEMENT":
-                            target_id = int(cmd_prop.get("targetId", 0))
-                            parsed_cmds.append((9, 0, target_id, 0, ""))
-                        elif cmd_type == "FADE_OUT":
-                            speed = int(cmd_prop.get("speed", 2))
-                            parsed_cmds.append((10, 0, speed, 0, ""))
-                        elif cmd_type == "FADE_IN":
-                            speed = int(cmd_prop.get("speed", 2))
-                            parsed_cmds.append((11, 0, speed, 0, ""))
-                        elif cmd_type == "PLAY_BGM":
-                            bgm = cmd_prop.get("bgmName", "")
-                            parsed_cmds.append((12, 0, 0, 0, bgm))
-                        elif cmd_type == "SET_FACING":
-                            target_id = int(cmd_prop.get("targetId", 0))
-                            dir_str = str(cmd_prop.get("direction", "DOWN")).strip().upper()
-                            DIR_MAP = { "DOWN": 0, "RIGHT": 1, "UP": 2, "LEFT": 3 }
-                            dir_val = DIR_MAP.get(dir_str, 0)
-                            parsed_cmds.append((13, dir_val, target_id, 0, ""))
-                        elif cmd_type == "SET_SPEED":
-                            target_id = int(cmd_prop.get("targetId", 0))
-                            speed = int(cmd_prop.get("speed", 2))
-                            parsed_cmds.append((14, speed, target_id, 0, ""))
-                
-                command_count = len(parsed_cmds)
+                expanded_page_cmds = expand_command_list(cmd_list)
+                command_count = len(expanded_page_cmds)
                 fout.write(struct.pack("<BBBhBBB16s24s24s24s8s8sH", trigger_val, graphic_frame, is_walkable, var_threshold, move_type_val, move_speed, move_frequency, move_path_bytes, switch_cond_bytes, var_cond_bytes, self_var_cond_bytes, self_switch_cond_bytes, sprite_name_bytes, command_count))
 
-                for c_type, c_op, c_val, c_extra, c_str in parsed_cmds:
-                    str_bytes = c_str.encode("ascii", errors="replace")[:23].ljust(24, b"\0")
-                    fout.write(struct.pack("<BBhh24s2x", c_type, c_op, c_val, c_extra, str_bytes))
+                for cmd in expanded_page_cmds:
+                    serialize_command(cmd)
 
     print(f"Layers: {len(tile_layers)}, Animations: {len(animations)}, Events: {len(events)} -> {out_path}")
 

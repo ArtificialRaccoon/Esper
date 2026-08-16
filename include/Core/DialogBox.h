@@ -15,10 +15,12 @@ class DialogBox
 		void Update();
 		void Draw(BITMAP *dest, int scrollXOffset, int scrollYOffset);
 		void Advance();
+		void Close();
 		void SetTextColor(int color) { textColor = color; }
 		int GetTextColor() const { return textColor; }		
 		bool IsActive() const { return active; }
 		bool IsFinished() const { return isFinished; }
+		bool IsTyping() const { return active && !isFinished; }
 		
 	private:
 		std::string fullText;

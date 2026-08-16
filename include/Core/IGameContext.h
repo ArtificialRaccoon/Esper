@@ -17,6 +17,11 @@ class IGameContext
 		
 		// New interfaces for cutscene support:
 		virtual bool IsDialogActive() const = 0;
+		virtual bool IsDialogTyping() const = 0;
+		virtual void CloseDialog() = 0;
+		virtual bool IsChoiceActive() const = 0;
+		virtual void ShowChoices(const std::vector<std::string> &choices) = 0;
+		virtual int GetSelectedChoice() const = 0;
 		virtual bool IsFading() const = 0;
 		virtual Actor* GetActorById(int id) = 0;
 		virtual Event* GetEventById(int id) = 0;

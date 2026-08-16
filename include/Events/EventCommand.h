@@ -1,7 +1,9 @@
 #pragma once
 #include <string>
+#include <vector>
 #include <memory>
 #include <cstdint>
+#include <istream>
 #include "Core/GlobalEnumerations.h"
 
 class Event;
@@ -14,6 +16,8 @@ enum class CommandStatus
 	YIELD,
 	WAIT_FRAMES,
 	WAIT_FOR_ACTOR,
+	WAIT_FOR_CHOICE,
+	WAIT_FOR_TEXT,
 	TERMINATE
 };
 
@@ -26,6 +30,8 @@ struct CommandResult
 	static CommandResult Yield() { return { CommandStatus::YIELD, 0 }; }
 	static CommandResult WaitFrames(int frames) { return { CommandStatus::WAIT_FRAMES, frames }; }
 	static CommandResult WaitForActor(int targetId) { return { CommandStatus::WAIT_FOR_ACTOR, targetId }; }
+	static CommandResult WaitForChoice() { return { CommandStatus::WAIT_FOR_CHOICE, 0 }; }
+	static CommandResult WaitForText() { return { CommandStatus::WAIT_FOR_TEXT, 0 }; }
 	static CommandResult Terminate() { return { CommandStatus::TERMINATE, 0 }; }
 };
 
@@ -180,5 +186,23 @@ class SetSpeedCommand : public IEventCommand
 		int16_t speed;
 };
 
+struct ChoiceOption
+{
+	uint16_t stringId = 0;
+	std::vector<std::shared_ptr<IEventCommand>> commands;
+};
+
+class ShowChoicesCommand : public IEventCommand
+{
+	public:
+		explicit ShowChoicesCommand(std::vector<ChoiceOption> options);
+		CommandResult Execute(ExecutionContext &ctx) override;
+		const std::vector<ChoiceOption>& GetOptions() const { return options; }
+	private:
+		std::vector<ChoiceOption> options;
+};
+
 std::shared_ptr<IEventCommand> CreateEventCommand(const EventCommand &packedCmd);
+std::vector<std::shared_ptr<IEventCommand>> LoadEventCommands(std::istream &file, uint16_t count);
+
 

@@ -111,14 +111,7 @@ void TileMap::LoadEvents(TileMapHeader header, std::ifstream& file)
 			EventPageHeader pageHeader;
 			ReadBytes(file, &pageHeader, sizeof(pageHeader));
 
-			std::vector<std::shared_ptr<IEventCommand>> commands;
-			for (uint16_t c = 0; c < pageHeader.commandCount; c++)
-			{
-				EventCommand cmd;
-				ReadBytes(file, &cmd, sizeof(cmd));
-				commands.push_back(CreateEventCommand(cmd));
-			}
-
+			std::vector<std::shared_ptr<IEventCommand>> commands = LoadEventCommands(file, pageHeader.commandCount);
 			EventPage page(pageHeader, std::move(commands));
 			tempPages.push_back(std::move(page));
 		}

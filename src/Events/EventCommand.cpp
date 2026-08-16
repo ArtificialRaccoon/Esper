@@ -19,7 +19,7 @@ CommandResult ShowTextCommand::Execute(ExecutionContext &ctx)
 {
 	std::string dialogText = StringDatabase::Instance().GetString(stringId);
 	ctx.context.ShowText(dialogText);
-	return CommandResult::Yield();
+	return CommandResult::WaitForText();
 }
 
 // ControlSelfSwitchCommand
@@ -213,6 +213,24 @@ CommandResult SetSpeedCommand::Execute(ExecutionContext &ctx)
 	return CommandResult::Continue();
 }
 
+// ShowChoicesCommand
+ShowChoicesCommand::ShowChoicesCommand(std::vector<ChoiceOption> options)
+	: options(std::move(options))
+{
+}
+
+CommandResult ShowChoicesCommand::Execute(ExecutionContext &ctx)
+{
+	std::vector<std::string> labels;
+	labels.reserve(options.size());
+	for (const auto &opt : options)
+	{
+		labels.push_back(StringDatabase::Instance().GetString(opt.stringId));
+	}
+	ctx.context.ShowChoices(labels);
+	return CommandResult::WaitForChoice();
+}
+
 // Factory
 std::shared_ptr<IEventCommand> CreateEventCommand(const EventCommand &packedCmd)
 {
@@ -250,4 +268,43 @@ std::shared_ptr<IEventCommand> CreateEventCommand(const EventCommand &packedCmd)
 			break;
 	}
 	return nullptr;
+}
+
+std::vector<std::shared_ptr<IEventCommand>> LoadEventCommands(std::istream &file, uint16_t count)
+{
+	std::vector<std::shared_ptr<IEventCommand>> commands;
+	commands.reserve(count);
+
+	for (uint16_t i = 0; i < count; i++)
+	{
+		EventCommand cmd;
+		file.read(reinterpret_cast<char*>(&cmd), sizeof(cmd));
+
+		if (cmd.type == CommandType::SHOW_CHOICES)
+		{
+			uint8_t optionCount = cmd.op;
+			int16_t cancelIdx = cmd.val;
+			std::vector<ChoiceOption> options;
+			options.reserve(optionCount);
+
+			for (uint8_t o = 0; o < optionCount; o++)
+			{
+				uint16_t stringId = 0;
+				uint16_t subCmdCount = 0;
+				file.read(reinterpret_cast<char*>(&stringId), sizeof(stringId));
+				file.read(reinterpret_cast<char*>(&subCmdCount), sizeof(subCmdCount));
+
+				std::vector<std::shared_ptr<IEventCommand>> subCmds = LoadEventCommands(file, subCmdCount);
+				options.push_back(ChoiceOption{ stringId, std::move(subCmds) });
+			}
+
+			commands.push_back(std::make_shared<ShowChoicesCommand>(std::move(options)));
+		}
+		else
+		{
+			commands.push_back(CreateEventCommand(cmd));
+		}
+	}
+
+	return commands;
 }

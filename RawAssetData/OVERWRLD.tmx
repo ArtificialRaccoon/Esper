@@ -404,7 +404,68 @@
       </property>
      </properties>
     </object>
-  </objectgroup>
+    <object id="15" name="NPC_GUIDE" type="GameEvent" x="192" y="160" width="16" height="16">
+     <properties>
+      <property name="Pages" type="list">
+       <item type="class" propertytype="EventPage">
+        <properties>
+         <property name="commands" type="list">
+          <item type="class" propertytype="EventCommand">
+           <properties>
+            <property name="text" value="Hello traveler! Would you like some advice?"/>
+            <property name="type" value="SHOW_TEXT"/>
+           </properties>
+          </item>
+          <item type="class" propertytype="EventCommand">
+           <properties>
+            <property name="type" value="SHOW_CHOICES"/>
+            <property name="choices" type="list">
+             <item type="class" propertytype="ChoiceOption">
+              <properties>
+               <property name="text" value="Yes, please!"/>
+               <property name="commands" type="list">
+                <item type="class" propertytype="EventCommand">
+                 <properties>
+                  <property name="sfxName" value="STEP"/>
+                  <property name="type" value="PLAY_SFX"/>
+                 </properties>
+                </item>
+                <item type="class" propertytype="EventCommand">
+                 <properties>
+                  <property name="text" value="Be careful near the ruins!\nDangerous beasts roam there."/>
+                  <property name="type" value="SHOW_TEXT"/>
+                 </properties>
+                </item>
+               </property>
+              </properties>
+             </item>
+             <item type="class" propertytype="ChoiceOption">
+              <properties>
+               <property name="text" value="No, thanks."/>
+               <property name="commands" type="list">
+                <item type="class" propertytype="EventCommand">
+                 <properties>
+                  <property name="text" value="Safe travels then!"/>
+                  <property name="type" value="SHOW_TEXT"/>
+                 </properties>
+                </item>
+               </property>
+              </properties>
+             </item>
+            </property>
+           </properties>
+          </item>
+         </property>
+         <property name="isWalkable" type="bool" value="false"/>
+         <property name="spriteFrame" type="int" value="0"/>
+         <property name="spriteName" value="CHAR"/>
+         <property name="trigger" value="ACTION_BUTTON"/>
+        </properties>
+       </item>
+      </property>
+     </properties>
+    </object>
+   </objectgroup>
  <layer id="4" name="OL1" width="32" height="32">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

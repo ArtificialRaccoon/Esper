@@ -16,6 +16,18 @@
             "id": 3,
             "members": [
                 {
+                    "name": "choices",
+                    "type": "list",
+                    "value": [
+                        {
+                            "propertyType": "ChoiceOption",
+                            "type": "class",
+                            "value": {
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "incSelfVar",
                     "type": "string",
                     "value": ""
@@ -213,6 +225,43 @@
             "name": "GameEvent",
             "type": "class",
             "useAs": [
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 4,
+            "members": [
+                {
+                    "name": "commands",
+                    "type": "list",
+                    "value": [
+                        {
+                            "propertyType": "EventCommand",
+                            "type": "class",
+                            "value": {
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "text",
+                    "type": "string",
+                    "value": ""
+                }
+            ],
+            "name": "ChoiceOption",
+            "type": "class",
+            "useAs": [
+                "property",
                 "map",
                 "layer",
                 "object",

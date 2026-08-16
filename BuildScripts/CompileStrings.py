@@ -34,6 +34,30 @@ def parse_properties(el):
             props[name] = parse_value(prop, prop_type)
     return props
 
+def extract_strings_from_commands(cmd_list, strings_set):
+    if not isinstance(cmd_list, list):
+        return
+    for cmd_prop in cmd_list:
+        if isinstance(cmd_prop, dict):
+            cmd_type = cmd_prop.get("type", "NONE")
+            if cmd_type == "SHOW_TEXT":
+                text = cmd_prop.get("text", "")
+                if text:
+                    strings_set.add(text)
+            elif cmd_type == "SHOW_CHOICES":
+                choices = cmd_prop.get("choices", [])
+                if isinstance(choices, list):
+                    for opt in choices:
+                        if isinstance(opt, dict):
+                            opt_text = opt.get("text", "")
+                            if opt_text:
+                                strings_set.add(opt_text)
+                            opt_cmds = opt.get("commands", [])
+                            extract_strings_from_commands(opt_cmds, strings_set)
+                        elif isinstance(opt, str):
+                            if opt:
+                                strings_set.add(opt)
+
 def main():
     raw_asset_dir = Path("RawAssetData")
     if not raw_asset_dir.is_dir():
@@ -61,13 +85,7 @@ def main():
                     single_cmd = page.get("command", None)
                     if isinstance(single_cmd, dict):
                         cmd_list.append(single_cmd)
-                    for cmd_prop in cmd_list:
-                        if isinstance(cmd_prop, dict):
-                            cmd_type = cmd_prop.get("type", "NONE")
-                            if cmd_type == "SHOW_TEXT":
-                                text = cmd_prop.get("text", "")
-                                if text:
-                                    strings.add(text)
+                    extract_strings_from_commands(cmd_list, strings)
 
     sorted_strings = sorted(list(strings))
     string_count = len(sorted_strings)
