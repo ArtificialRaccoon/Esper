@@ -22,7 +22,7 @@ void GameProcessor::InitializeGame()
 	PathDatabase::Instance().Load(AssetPaths::PATHS);
 
 	set_color_depth(8);
-	if (set_gfx_mode(GFX_MODEX, SCREEN_WIDTH, SCREEN_HEIGHT, 352, 480) != 0)
+	if (set_gfx_mode(GFX_MODEX, SCREEN_WIDTH, SCREEN_HEIGHT, SCROLLABLE_VIRTUAL_W, SCROLLABLE_VIRTUAL_H) != 0)
 	{
 		if (set_gfx_mode(GFX_MODEX, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0) != 0)
 		{
@@ -32,7 +32,7 @@ void GameProcessor::InitializeGame()
 		}
 	}
 
-	reserve_voices(32, -1);
+	reserve_voices(AUDIO_MAX_VOICES, -1);
 	if (install_sound(DIGI_AUTODETECT, MIDI_AUTODETECT, NULL) < 0)
 	{
 		printf("Error initializing sound card");
@@ -176,9 +176,9 @@ void GameProcessor::UpdateFade()
 		return;
 
 	fadeStep += fadeSpeed;
-	if (fadeStep >= 64)
+	if (fadeStep >= VGA_PALETTE_STEPS)
 	{
-		fadeStep = 64;
+		fadeStep = VGA_PALETTE_STEPS;
 		isFading = false;
 		set_palette(targetPal);
 		fadeDirection = FadeDirection::NONE;
@@ -186,7 +186,7 @@ void GameProcessor::UpdateFade()
 	else
 	{
 		PALETTE tempPal;
-		fade_interpolate(sourcePal, targetPal, tempPal, fadeStep, 0, 255);
+		fade_interpolate(sourcePal, targetPal, tempPal, fadeStep, 0, VGA_PALETTE_SIZE - 1);
 		set_palette(tempPal);
 	}
-}
+}

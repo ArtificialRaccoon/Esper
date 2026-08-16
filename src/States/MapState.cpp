@@ -13,7 +13,7 @@ void MapState::InitState(GameProcessor *game)
 	PALETTE pal;
 	tileset = load_bitmap(".\\TILESETS\\SHEET.bmp", pal);
 
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < VGA_PALETTE_SIZE; i++)
 	{
 		CommonGUI::Instance().GetPalette()[i] = pal[i];
 	}

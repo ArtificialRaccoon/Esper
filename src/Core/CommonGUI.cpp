@@ -25,7 +25,7 @@ CommonGUI::CommonGUI()
 	guiSheet = load_bitmap(AssetPaths::GUI_SHEET, tmp);
 
 	//Initialize master palette to all black for now
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < VGA_PALETTE_SIZE; i++)
 	{
 		palette[i].r = palette[i].g = palette[i].b = 0;
 	}
@@ -44,7 +44,7 @@ void CommonGUI::LoadPalette(const char *filename)
 	if (!file)
 		return;
 
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < VGA_PALETTE_SIZE; i++)
 	{
 		palette[i].r = fgetc(file);
 		palette[i].g = fgetc(file);
@@ -56,7 +56,7 @@ void CommonGUI::LoadPalette(const char *filename)
 
 void CommonGUI::LoadPalette(const char *filename, int startIndex, int endIndex)
 {
-	if (startIndex < 0 || endIndex > 255 || startIndex > endIndex)
+	if (startIndex < 0 || endIndex >= VGA_PALETTE_SIZE || startIndex > endIndex)
 		return;
 
 	FILE *file = fopen(filename, "rb");
@@ -64,7 +64,7 @@ void CommonGUI::LoadPalette(const char *filename, int startIndex, int endIndex)
 		return;
 
 	PALETTE temp;
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < VGA_PALETTE_SIZE; i++)
 	{
 		temp[i].r = fgetc(file);
 		temp[i].g = fgetc(file);
