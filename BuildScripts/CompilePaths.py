@@ -34,6 +34,24 @@ def parse_properties(el):
             props[name] = parse_value(prop, prop_type)
     return props
 
+def extract_paths_from_commands(cmd_list, paths_set):
+    if not isinstance(cmd_list, list):
+        return
+    for cmd_prop in cmd_list:
+        if isinstance(cmd_prop, dict):
+            cmd_type = cmd_prop.get("type", "NONE")
+            if cmd_type == "SET_MOVE_ROUTE":
+                path_str = cmd_prop.get("movePath", "")
+                if path_str:
+                    paths_set.add(path_str)
+            elif cmd_type == "SHOW_CHOICES":
+                choices = cmd_prop.get("choices", [])
+                if isinstance(choices, list):
+                    for opt in choices:
+                        if isinstance(opt, dict):
+                            opt_cmds = opt.get("commands", [])
+                            extract_paths_from_commands(opt_cmds, paths_set)
+
 def main():
     raw_asset_dir = Path("RawAssetData")
     if not raw_asset_dir.is_dir():
@@ -60,13 +78,7 @@ def main():
                     single_cmd = page.get("command", None)
                     if isinstance(single_cmd, dict):
                         cmd_list.append(single_cmd)
-                    for cmd_prop in cmd_list:
-                        if isinstance(cmd_prop, dict):
-                            cmd_type = cmd_prop.get("type", "NONE")
-                            if cmd_type == "SET_MOVE_ROUTE":
-                                path_str = cmd_prop.get("movePath", "")
-                                if path_str:
-                                    paths.add(path_str)
+                    extract_paths_from_commands(cmd_list, paths)
 
     sorted_paths = sorted(list(paths))
     path_count = len(sorted_paths)
