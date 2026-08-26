@@ -102,10 +102,9 @@ CommandResult TransferPlayerCommand::Execute(ExecutionContext &ctx)
 }
 
 // SetMoveRouteCommand
-SetMoveRouteCommand::SetMoveRouteCommand(int16_t targetId, uint16_t pathId, bool bypassCollision)
+SetMoveRouteCommand::SetMoveRouteCommand(int16_t targetId, uint16_t pathId)
 	: targetId(targetId)
 	, pathId(pathId)
-	, bypassCollision(bypassCollision)
 {
 }
 
@@ -116,7 +115,7 @@ CommandResult SetMoveRouteCommand::Execute(ExecutionContext &ctx)
 	{
 		std::string pathStr = PathDatabase::Instance().GetPath(pathId);
 		std::vector<Direction> steps = StringUtils::ParseMovePath(pathStr);
-		actor->QueueMoveRoute(steps, bypassCollision);
+		actor->QueueMoveRoute(steps);
 	}
 	return CommandResult::Continue();
 }
@@ -249,7 +248,7 @@ std::shared_ptr<IEventCommand> CreateEventCommand(const EventCommand &packedCmd)
 		case CommandType::TRANSFER_PLAYER:
 			return std::make_shared<TransferPlayerCommand>(packedCmd.strParam1, packedCmd.val, packedCmd.extraVal);
 		case CommandType::SET_MOVE_ROUTE:
-			return std::make_shared<SetMoveRouteCommand>(packedCmd.val, static_cast<uint16_t>(packedCmd.extraVal), packedCmd.op != 0);
+			return std::make_shared<SetMoveRouteCommand>(packedCmd.val, static_cast<uint16_t>(packedCmd.extraVal));
 		case CommandType::WAIT:
 			return std::make_shared<WaitCommand>(packedCmd.val);
 		case CommandType::WAIT_FOR_MOVEMENT:

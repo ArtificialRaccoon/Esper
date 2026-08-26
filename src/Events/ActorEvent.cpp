@@ -103,25 +103,7 @@ void ActorEvent::Update(const TileMap &tileMap, int playerMapX, int playerMapY, 
 
 	if (HasActiveMoveRoute())
 	{
-		UpdateMoveRouteStep([this, &tileMap, playerMapX, playerMapY, &allEvents, &context](int tx, int ty) {
-			if (CollidesWithPlayer(tx * TILE_SIZE, ty * TILE_SIZE, playerMapX, playerMapY))
-			{
-				const EventPage *activePage = GetActivePage();
-				if (activePage && activePage->GetTrigger() == EventTriggerType::EVENT_TOUCH && touchCooldownTicks == 0)
-				{
-					if (!context.IsDialogActive() && !context.IsFading())
-					{
-						int playerCenterX = playerMapX + CHARACTER_HITBOX_X_OFFSET + CHARACTER_HITBOX_WIDTH / 2;
-						int playerCenterY = playerMapY + CHARACTER_HITBOX_Y_OFFSET + CHARACTER_HITBOX_HEIGHT / 2;
-						TurnToFacePlayer(playerCenterX, playerCenterY);
-						context.StartEventScript(activePage->GetCommands(), eventId);
-						touchCooldownTicks = moveFrequency + 30;
-					}
-				}
-				return false;
-			}
-			return !CheckCollisionAt(tx, ty, tileMap, playerMapX, playerMapY, allEvents);
-		});
+		UpdateMoveRouteStep();
 		return;
 	}
 

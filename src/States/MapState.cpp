@@ -198,11 +198,7 @@ void MapState::ProcessInput(GameProcessor *game)
 	}
 
 	if (player.HasActiveMoveRoute())
-	{
-		player.UpdateMoveRouteStep([this](int tx, int ty) {
-			return IsWalkable(tx * TILE_SIZE, ty * TILE_SIZE);
-		});
-	}
+		player.UpdateMoveRouteStep();
 
 	scrollX = std::clamp(player.GetMapX() - (SCREEN_WIDTH - CHARACTER_SPRITE_WIDTH) / 2, 0, std::max(0, mapWidthPx - SCREEN_WIDTH));
 	scrollY = std::clamp(player.GetMapY() - (SCREEN_HEIGHT - CHARACTER_SPRITE_HEIGHT) / 2, 0, std::max(0, mapHeightPx - SCREEN_HEIGHT));

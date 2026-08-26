@@ -11,12 +11,11 @@ Actor::Actor()
 	, targetTileX(0)
 	, targetTileY(0)
 	, moveSpeed(2)
-	, bypassCollision(false)
 	, isMovingRoute(false)
 {
 }
 
-void Actor::QueueMoveRoute(const std::vector<Direction> &steps, bool bypassColl)
+void Actor::QueueMoveRoute(const std::vector<Direction> &steps)
 {
 	std::queue<Direction> empty;
 	std::swap(moveRouteQueue, empty);
@@ -25,7 +24,6 @@ void Actor::QueueMoveRoute(const std::vector<Direction> &steps, bool bypassColl)
 	{
 		moveRouteQueue.push(step);
 	}
-	bypassCollision = bypassColl;
 	isMovingRoute = false;
 }
 
@@ -34,7 +32,7 @@ bool Actor::HasActiveMoveRoute() const
 	return !moveRouteQueue.empty() || isMovingRoute;
 }
 
-void Actor::UpdateMoveRouteStep(const std::function<bool(int, int)> &isWalkableCheck)
+void Actor::UpdateMoveRouteStep()
 {
 	if (moveRouteQueue.empty() && !isMovingRoute)
 		return;
@@ -83,14 +81,11 @@ void Actor::UpdateMoveRouteStep(const std::function<bool(int, int)> &isWalkableC
 		case Direction::RIGHT: nextTileX++; break;
 	}
 
-	if (bypassCollision || isWalkableCheck(nextTileX, nextTileY))
-	{
-		targetTileX = nextTileX;
-		targetTileY = nextTileY;
-		isMoving = true;
-		isMovingRoute = true;
-		moveRouteQueue.pop();
-	}
+	targetTileX = nextTileX;
+	targetTileY = nextTileY;
+	isMoving = true;
+	isMovingRoute = true;
+	moveRouteQueue.pop();
 }
 
 void Actor::UpdateAnimation()

@@ -32,9 +32,9 @@ class Actor
 		void SetMoving(bool moving) { isMoving = moving; }
 		void SetMoveSpeed(int speed) { moveSpeed = speed; }
 
-		void QueueMoveRoute(const std::vector<Direction> &steps, bool bypassColl = false);
+		void QueueMoveRoute(const std::vector<Direction> &steps);
 		bool HasActiveMoveRoute() const;
-		void UpdateMoveRouteStep(const std::function<bool(int, int)> &isWalkableCheck);
+		void UpdateMoveRouteStep();
 
 		void UpdateAnimation();
 		void DrawSprite(BITMAP *dest, BITMAP *spriteSheet, int drawX, int drawY) const;
@@ -50,7 +50,6 @@ class Actor
 		int targetTileX = 0;
 		int targetTileY = 0;
 		int moveSpeed = 2;
-		bool bypassCollision = false;
 		bool isMovingRoute = false;
 		std::queue<Direction> moveRouteQueue;
 };

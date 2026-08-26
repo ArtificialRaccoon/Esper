@@ -113,12 +113,11 @@ class TransferPlayerCommand : public IEventCommand
 class SetMoveRouteCommand : public IEventCommand
 {
 	public:
-		SetMoveRouteCommand(int16_t targetId, uint16_t pathId, bool bypassCollision);
+		SetMoveRouteCommand(int16_t targetId, uint16_t pathId);
 		CommandResult Execute(ExecutionContext &ctx) override;
 	private:
 		int16_t targetId;
 		uint16_t pathId;
-		bool bypassCollision;
 };
 
 class WaitCommand : public IEventCommand

@@ -256,12 +256,11 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                         write_raw_cmd(6, 0, tx, ty, m_name)
                     elif c_type == "SET_MOVE_ROUTE":
                         target_id = int(c_prop.get("targetId", 0))
-                        bypass_col = 1 if c_prop.get("bypassCollision", False) else 0
                         path_str = c_prop.get("movePath", "")
                         path_id = path_map.get(path_str, -1)
                         if path_id == -1 and path_str:
                             print(f"Warning: Move path '{path_str}' not found in PATHS.json. Make sure to compile paths.")
-                        write_raw_cmd(7, bypass_col, target_id, path_id, "")
+                        write_raw_cmd(7, 0, target_id, path_id, "")
                     elif c_type == "WAIT":
                         frames = int(c_prop.get("frames", 60))
                         write_raw_cmd(8, 0, frames, 0, "")
