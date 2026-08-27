@@ -3,12 +3,12 @@
 #include "Core/Actor.h"
 #include "Events/Event.h"
 
-void EventInterpreter::Start(const std::vector<std::shared_ptr<IEventCommand>> &cmds, uint16_t triggeringEventId, IGameContext &context, bool loop)
+void EventInterpreter::Start(const std::vector<std::shared_ptr<IEventCommand>> &cmds, uint16_t triggeringEventId, IGameContext &context, bool isParallel)
 {
 	if (cmds.empty())
 	{
 		isActive = false;
-		isLooping = false;
+		this->isParallel = false;
 		return;
 	}
 
@@ -16,7 +16,7 @@ void EventInterpreter::Start(const std::vector<std::shared_ptr<IEventCommand>> &
 	frameStack.clear();
 	frameStack.push_back(ExecutionFrame{ cmds, 0 });
 	isActive = true;
-	isLooping = loop;
+	this->isParallel = isParallel;
 	currentWaitState = CommandResult::Continue();
 	triggerId = triggeringEventId;
 
@@ -26,7 +26,7 @@ void EventInterpreter::Start(const std::vector<std::shared_ptr<IEventCommand>> &
 void EventInterpreter::Clear()
 {
 	isActive = false;
-	isLooping = false;
+	isParallel = false;
 	rootCommands.clear();
 	frameStack.clear();
 	currentWaitState = CommandResult::Continue();
@@ -181,7 +181,7 @@ void EventInterpreter::Update(IGameContext &context)
 			return;
 	}
 
-	if (isLooping)
+	if (isParallel)
 	{
 		frameStack.clear();
 		frameStack.push_back(ExecutionFrame{ rootCommands, 0 });

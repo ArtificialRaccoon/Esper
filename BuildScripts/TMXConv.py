@@ -314,6 +314,17 @@ def convert(tmx_path: Path, out_path: Path) -> None:
                     cmd_list.append(single_cmd)
 
                 expanded_page_cmds = expand_command_list(cmd_list)
+                if trigger_str == "PARALLEL":
+                    DISALLOWED_PARALLEL = {"SHOW_TEXT", "SHOW_CHOICES", "TRANSFER", "TRANSFER_PLAYER", "FADE_OUT", "FADE_IN"}
+                    filtered_cmds = []
+                    for c in expanded_page_cmds:
+                        c_type = c.get("type", "NONE")
+                        if c_type in DISALLOWED_PARALLEL:
+                            print(f"Warning: Event {event['eventId']} on '{tmx_path.stem}' uses '{c_type}' on a PARALLEL page. Disallowed commands are omitted from binary compilation.")
+                        else:
+                            filtered_cmds.append(c)
+                    expanded_page_cmds = filtered_cmds
+
                 command_count = len(expanded_page_cmds)
                 fout.write(struct.pack("<BBBhBBB16s24s24s24s8s8sH", trigger_val, graphic_frame, is_walkable, var_threshold, move_type_val, move_speed, move_frequency, move_path_bytes, switch_cond_bytes, var_cond_bytes, self_var_cond_bytes, self_switch_cond_bytes, sprite_name_bytes, command_count))
 

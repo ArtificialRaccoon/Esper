@@ -17,17 +17,17 @@ class EventInterpreter
 		EventInterpreter() = default;
 		~EventInterpreter() = default;
 
-		void Start(const std::vector<std::shared_ptr<IEventCommand>> &cmds, uint16_t triggeringEventId, IGameContext &context, bool loop = false);
+		void Start(const std::vector<std::shared_ptr<IEventCommand>> &cmds, uint16_t triggeringEventId, IGameContext &context, bool isParallel = false);
 		void Update(IGameContext &context);
 		bool IsActive() const { return isActive; }
-		bool IsLooping() const { return isLooping; }
+		bool IsParallel() const { return isParallel; }
 		uint16_t GetTriggerId() const { return triggerId; }
 		void Clear();
 		void Stop() { Clear(); }
 
 	private:
 		bool isActive = false;
-		bool isLooping = false;
+		bool isParallel = false;
 		std::vector<std::shared_ptr<IEventCommand>> rootCommands;
 		std::vector<ExecutionFrame> frameStack;
 		CommandResult currentWaitState = CommandResult::Continue();
