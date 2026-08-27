@@ -123,11 +123,6 @@ void MapState::AcquireInput(GameProcessor *game)
 
 void MapState::ProcessInput(GameProcessor *game)
 {
-	for (auto &event : tileMap.GetEvents())
-	{
-		event->UpdateActivePage(currentMapName);
-	}
-
 	if (interpreter.IsActive())
 		interpreter.Update(*this);
 
